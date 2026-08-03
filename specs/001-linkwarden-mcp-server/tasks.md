@@ -23,14 +23,14 @@ Single Python package at `src/linkwarden_mcp/`, tests at `tests/` (manager-mcp l
 
 **Purpose**: Packaging baseline — first commit must include sdist include list and publish workflow.
 
-- [ ] T001 Rewrite `pyproject.toml` for hatchling, Python ≥3.10, FastMCP 2.x, final description, sdist include, ruff py310 in `pyproject.toml`
-- [ ] T002 Add `LICENSE` (MIT, match manager-mcp)
-- [ ] T003 Update `README.md` with uvx install, env vars, and link to `specs/001-linkwarden-mcp-server/quickstart.md`
-- [ ] T004 [P] Add `.github/workflows/publish.yml` with `name: publish`, `pypi` environment, `id-token: write` per `contracts/packaging.md`
-- [ ] T005 [P] Create package skeleton `src/linkwarden_mcp/__init__.py` and `src/linkwarden_mcp/spec/` directory
-- [ ] T006 [P] Seed `src/linkwarden_mcp/spec/DIVERGENCES.md` with clarify findings (archive format, tag merge PUT, dashboard, collection create path)
-- [ ] T007 [P] Add vendored OpenAPI placeholder `src/linkwarden_mcp/spec/linkwarden.openapi.json`
-- [ ] T008 [P] Add `tests/test_sdist_contents.py` mirroring manager-mcp forbidden-path assertions
+- [X] T001 Rewrite `pyproject.toml` for hatchling, Python ≥3.10, FastMCP 2.x, final description, sdist include, ruff py310 in `pyproject.toml`
+- [X] T002 Add `LICENSE` (MIT, match manager-mcp)
+- [X] T003 Update `README.md` with uvx install, env vars, and link to `specs/001-linkwarden-mcp-server/quickstart.md`
+- [X] T004 [P] Add `.github/workflows/publish.yml` with `name: publish`, `pypi` environment, `id-token: write` per `contracts/packaging.md`
+- [X] T005 [P] Create package skeleton `src/linkwarden_mcp/__init__.py` and `src/linkwarden_mcp/spec/` directory
+- [X] T006 [P] Seed `src/linkwarden_mcp/spec/DIVERGENCES.md` with clarify findings (archive format, tag merge PUT, dashboard, collection create path)
+- [X] T007 [P] Add vendored OpenAPI placeholder `src/linkwarden_mcp/spec/linkwarden.openapi.json`
+- [X] T008 [P] Add `tests/test_sdist_contents.py` mirroring manager-mcp forbidden-path assertions
 
 ---
 
@@ -40,17 +40,17 @@ Single Python package at `src/linkwarden_mcp/`, tests at `tests/` (manager-mcp l
 
 **⚠️ CRITICAL**: No user story tool work until this phase completes.
 
-- [ ] T009 Implement exception types in `src/linkwarden_mcp/errors.py` (DeniedPathError, ApiError, BulkCapExceeded)
-- [ ] T010 [P] Implement sort word→integer mapping in `src/linkwarden_mcp/sort.py`
-- [ ] T011 Implement env parsing, permission flags, lazy client factory, startup validation in `src/linkwarden_mcp/config.py` (FR-002, FR-003)
-- [ ] T012 Implement httpx client with source-tree denylist and API message extraction in `src/linkwarden_mcp/client.py` (FR-004, FR-013)
-- [ ] T013 Implement cached collection/tag name↔id resolution with ambiguity error when duplicate collection names match in `src/linkwarden_mcp/resolve.py` (FR-009)
-- [ ] T014 Add shared bulk-cap guard in `src/linkwarden_mcp/errors.py` or `src/linkwarden_mcp/config.py` (FR-005)
-- [ ] T015 Add respx fixtures and mock Linkwarden responses in `tests/conftest.py`
-- [ ] T016 [P] Add permission, startup validation, and import/`--help` no-network tests in `tests/test_config.py` (FR-003, US4 scenario 5)
-- [ ] T017 [P] Add parametrized denylist refusal tests for all denied categories in `contracts/denylist.md` (`tokens`, `session`, `auth`, `users` except `GET .../me`, `migration`, whole-instance `worker/preservation`, archive DELETE without linkIds) in `tests/test_client_denylist.py` (SC-003)
-- [ ] T018 [P] Add name resolution cache tests including ambiguous duplicate collection names (fail with match count, no arbitrary pick) in `tests/test_resolve.py` (FR-009)
-- [ ] T019 Create FastMCP app skeleton and `main()` entry in `src/linkwarden_mcp/server.py`
+- [X] T009 Implement exception types in `src/linkwarden_mcp/errors.py` (DeniedPathError, ApiError, BulkCapExceeded)
+- [X] T010 [P] Implement sort word→integer mapping in `src/linkwarden_mcp/sort.py`
+- [X] T011 Implement env parsing, permission flags, lazy client factory, startup validation in `src/linkwarden_mcp/config.py` (FR-002, FR-003)
+- [X] T012 Implement httpx client with source-tree denylist and API message extraction in `src/linkwarden_mcp/client.py` (FR-004, FR-013)
+- [X] T013 Implement cached collection/tag name↔id resolution with ambiguity error when duplicate collection names match in `src/linkwarden_mcp/resolve.py` (FR-009)
+- [X] T014 Add shared bulk-cap guard in `src/linkwarden_mcp/errors.py` or `src/linkwarden_mcp/config.py` (FR-005)
+- [X] T015 Add respx fixtures and mock Linkwarden responses in `tests/conftest.py`
+- [X] T016 [P] Add permission, startup validation, and import/`--help` no-network tests in `tests/test_config.py` (FR-003, US4 scenario 5)
+- [X] T017 [P] Add parametrized denylist refusal tests for all denied categories in `contracts/denylist.md` (`tokens`, `session`, `auth`, `users` except `GET .../me`, `migration`, whole-instance `worker/preservation`, archive DELETE without linkIds) in `tests/test_client_denylist.py` (SC-003)
+- [X] T018 [P] Add name resolution cache tests including ambiguous duplicate collection names (fail with match count, no arbitrary pick) in `tests/test_resolve.py` (FR-009)
+- [X] T019 Create FastMCP app skeleton and `main()` entry in `src/linkwarden_mcp/server.py`
 
 **Checkpoint**: Client, config, resolve importable; denylist tests pass; no tools registered yet.
 
@@ -64,16 +64,16 @@ Single Python package at `src/linkwarden_mcp/`, tests at `tests/` (manager-mcp l
 
 ### Tests for User Story 1
 
-- [ ] T020 [P] [US1] Add search/get/list tool tests in `tests/test_reads.py`
-- [ ] T021 [P] [US1] Add textContent + archive format 3 fallback tests in `tests/test_read_content.py` (FR-014)
-- [ ] T022 [P] [US1] Add overview sum-invariant and tag-pagination tests in `tests/test_overview.py` (FR-017)
+- [X] T020 [P] [US1] Add search/get/list tool tests in `tests/test_reads.py`
+- [X] T021 [P] [US1] Add textContent + archive format 3 fallback tests in `tests/test_read_content.py` (FR-014)
+- [X] T022 [P] [US1] Add overview sum-invariant and tag-pagination tests in `tests/test_overview.py` (FR-017)
 
 ### Implementation for User Story 1
 
-- [ ] T023 [US1] Implement `search_links`, `get_link`, `list_collections`, `list_tags` in `src/linkwarden_mcp/reads.py` (FR-006)
-- [ ] T024 [US1] Implement `read_link_content` with textContent primary and format=3 fallback in `src/linkwarden_mcp/reads.py` (FR-014)
-- [ ] T025 [US1] Implement `get_library_overview` composing collections+tags in `src/linkwarden_mcp/reads.py` (FR-017)
-- [ ] T026 [US1] Register read tools unconditionally with `readOnlyHint` in `src/linkwarden_mcp/server.py`
+- [X] T023 [US1] Implement `search_links`, `get_link`, `list_collections`, `list_tags` in `src/linkwarden_mcp/reads.py` (FR-006)
+- [X] T024 [US1] Implement `read_link_content` with textContent primary and format=3 fallback in `src/linkwarden_mcp/reads.py` (FR-014)
+- [X] T025 [US1] Implement `get_library_overview` composing collections+tags in `src/linkwarden_mcp/reads.py` (FR-017)
+- [X] T026 [US1] Register read tools unconditionally with `readOnlyHint` in `src/linkwarden_mcp/server.py`
 
 **Checkpoint**: MVP — read-only MCP server runnable via `uv run linkwarden-mcp`.
 
@@ -87,15 +87,15 @@ Single Python package at `src/linkwarden_mcp/`, tests at `tests/` (manager-mcp l
 
 ### Tests for User Story 2
 
-- [ ] T027 [P] [US2] Add write tool tests including collection dedup on save, duplicate-url plain message, and bulk-cap refusal for `organise_links` and `queue_archive` in `tests/test_writes.py` (FR-008, FR-009, FR-013, SC-005, SC-006)
+- [X] T027 [P] [US2] Add write tool tests including collection dedup on save, duplicate-url plain message, and bulk-cap refusal for `organise_links` and `queue_archive` in `tests/test_writes.py` (FR-008, FR-009, FR-013, SC-005, SC-006)
 
 ### Implementation for User Story 2
 
-- [ ] T028 [US2] Implement `save_link` with collection name resolve-before-create in `src/linkwarden_mcp/writes.py` (FR-008, FR-009)
-- [ ] T029 [US2] Implement `organise_links` and `create_collection` in `src/linkwarden_mcp/writes.py`
-- [ ] T030 [US2] Implement `update_link` read-modify-write in `src/linkwarden_mcp/writes.py` (FR-010)
-- [ ] T031 [US2] Implement `queue_archive` queued-not-completed messaging in `src/linkwarden_mcp/writes.py` (FR-011)
-- [ ] T032 [US2] Register write tools when `LINKWARDEN_WRITE` set in `src/linkwarden_mcp/server.py` (FR-001)
+- [X] T028 [US2] Implement `save_link` with collection name resolve-before-create in `src/linkwarden_mcp/writes.py` (FR-008, FR-009)
+- [X] T029 [US2] Implement `organise_links` and `create_collection` in `src/linkwarden_mcp/writes.py`
+- [X] T030 [US2] Implement `update_link` read-modify-write in `src/linkwarden_mcp/writes.py` (FR-010)
+- [X] T031 [US2] Implement `queue_archive` queued-not-completed messaging in `src/linkwarden_mcp/writes.py` (FR-011)
+- [X] T032 [US2] Register write tools when `LINKWARDEN_WRITE` set in `src/linkwarden_mcp/server.py` (FR-001)
 
 **Checkpoint**: Read + write server; delete tools still absent without delete flag.
 
@@ -109,14 +109,14 @@ Single Python package at `src/linkwarden_mcp/`, tests at `tests/` (manager-mcp l
 
 ### Tests for User Story 3
 
-- [ ] T033 [P] [US3] Add delete and merge_tags tests (PUT not POST, duplicate-name warning, link bulk cap) plus bulk-cap refusal for `delete_links` and `delete_tags` in `tests/test_deletes.py` (FR-016, SC-006)
+- [X] T033 [P] [US3] Add delete and merge_tags tests (PUT not POST, duplicate-name warning, link bulk cap) plus bulk-cap refusal for `delete_links` and `delete_tags` in `tests/test_deletes.py` (FR-016, SC-006)
 
 ### Implementation for User Story 3
 
-- [ ] T034 [US3] Implement `delete_links` and `delete_tags` in `src/linkwarden_mcp/deletes.py`
-- [ ] T035 [US3] Implement `merge_tags` via `PUT /api/v1/tags/merge` with pre-checks in `src/linkwarden_mcp/deletes.py` (FR-016)
-- [ ] T036 [US3] Implement `delete_collection` in `src/linkwarden_mcp/deletes.py`
-- [ ] T037 [US3] Register delete tools when `LINKWARDEN_DELETE` / `LINKWARDEN_DELETE_COLLECTIONS` set with `destructiveHint` in `src/linkwarden_mcp/server.py` (FR-001)
+- [X] T034 [US3] Implement `delete_links` and `delete_tags` in `src/linkwarden_mcp/deletes.py`
+- [X] T035 [US3] Implement `merge_tags` via `PUT /api/v1/tags/merge` with pre-checks in `src/linkwarden_mcp/deletes.py` (FR-016)
+- [X] T036 [US3] Implement `delete_collection` in `src/linkwarden_mcp/deletes.py`
+- [X] T037 [US3] Register delete tools when `LINKWARDEN_DELETE` / `LINKWARDEN_DELETE_COLLECTIONS` set with `destructiveHint` in `src/linkwarden_mcp/server.py` (FR-001)
 
 **Checkpoint**: All 15 tools available with full permission flags enabled.
 
@@ -130,11 +130,11 @@ Single Python package at `src/linkwarden_mcp/`, tests at `tests/` (manager-mcp l
 
 ### Tests for User Story 4
 
-- [ ] T038 [P] [US4] Add tool registration matrix tests covering all flag combinations (default → 6 read; +WRITE → 11; +DELETE → 14; +DELETE_COLLECTIONS → 15) and `destructiveHint` on delete tools in `tests/test_permissions.py` (SC-002, FR-001, FR-002)
+- [X] T038 [P] [US4] Add tool registration matrix tests covering all flag combinations (default → 6 read; +WRITE → 11; +DELETE → 14; +DELETE_COLLECTIONS → 15) and `destructiveHint` on delete tools in `tests/test_permissions.py` (SC-002, FR-001, FR-002)
 
 ### Implementation for User Story 4
 
-- [ ] T039 [US4] Finalize conditional tool registration and startup identity check via `GET /users/me` in `src/linkwarden_mcp/server.py` and `src/linkwarden_mcp/config.py`
+- [X] T039 [US4] Finalize conditional tool registration and startup identity check via `GET /users/me` in `src/linkwarden_mcp/server.py` and `src/linkwarden_mcp/config.py`
 
 **Checkpoint**: Permission model fully enforced at registration and startup.
 
@@ -144,12 +144,12 @@ Single Python package at `src/linkwarden_mcp/`, tests at `tests/` (manager-mcp l
 
 **Purpose**: Docs, DIVERGENCES completeness, full suite green.
 
-- [ ] T040 Complete `src/linkwarden_mcp/spec/DIVERGENCES.md` with all source-vs-OpenAPI entries (FR-015)
-- [ ] T041 [P] Verify all tool names use verb prefixes for regression assertion in `tests/test_permissions.py` (FR-012)
-- [ ] T042 Run `uv run pytest` — full suite passes with zero credentials (SC-007)
-- [ ] T043 [P] Run `uv run ruff check src tests` and fix any issues
-- [ ] T044 [P] Run `uv run hatch build` and confirm `tests/test_sdist_contents.py` passes
-- [ ] T045 Validate manual smoke steps in `specs/001-linkwarden-mcp-server/quickstart.md`
+- [X] T040 Complete `src/linkwarden_mcp/spec/DIVERGENCES.md` with all source-vs-OpenAPI entries (FR-015)
+- [X] T041 [P] Verify all tool names use verb prefixes for regression assertion in `tests/test_permissions.py` (FR-012)
+- [X] T042 Run `uv run pytest` — full suite passes with zero credentials (SC-007)
+- [X] T043 [P] Run `uv run ruff check src tests` and fix any issues
+- [X] T044 [P] Run `uv run hatch build` and confirm `tests/test_sdist_contents.py` passes
+- [X] T045 Validate manual smoke steps in `specs/001-linkwarden-mcp-server/quickstart.md`
 
 ---
 

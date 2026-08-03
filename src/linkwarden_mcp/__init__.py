@@ -1,2 +1,3 @@
-def hello() -> str:
-    return "Hello from linkwarden-mcp!"
+"""Linkwarden MCP server."""
+
+__version__ = "0.1.0"

@@ -92,6 +92,89 @@ All tools use verb prefixes for client approval hints. Annotations: read tools `
 - **Input**: `collection` (str or id)
 - **Output**: `{ collection_id, links_removed_count }` — cascades all links
 
+## Workflow tools (read — always registered)
+
+Heuristic compose tools. Scans capped at 500 links per collection query. Never invent tag names outside library vocabulary.
+
+### suggest_collection_for_url
+
+- **Input**: `url` (required), `title`, `excerpt` (optional)
+- **Output**: `{ url, suggestions: [{ name, score, reason }] }` (top 3)
+
+### suggest_tags_for_link
+
+- **Input**: `link_id` or `url`
+- **Output**: `{ suggestions: [{ name, score, reason }], existing_tags }`
+
+### find_unsorted_links
+
+- **Input**: `limit` (default 50), `collection` (default `Unorganized`)
+- **Output**: `{ count, links[], scan_capped_at }`
+
+### triage_links
+
+- **Input**: `link_ids` (max bulk)
+- **Output**: `{ plans: [{ id, suggested_collection, suggested_tags, reasons }] }`
+
+### find_duplicate_links
+
+- **Input**: `collection` (optional), `limit` (default 500)
+- **Output**: `{ duplicate_groups: [{ normalized_url, count, links }], group_count }`
+
+### recommend_collection_for_links
+
+- **Input**: `link_ids` (max bulk)
+- **Output**: `{ recommended_collection, agreement_count, votes, per_link }`
+
+### suggest_links_for_collection
+
+- **Input**: `collection`, `limit` (default 25)
+- **Output**: `{ candidates: [{ id, url, score, reason }], profile_domains }`
+
+### analyze_collection_overlap
+
+- **Input**: `collection_a`, `collection_b`
+- **Output**: shared domains/tags/URLs + `merge_recommended`
+
+### suggest_collection_structure
+
+- **Input**: none
+- **Output**: empty collections, near-duplicate names, overcrowded, unused tags
+
+### align_tags_with_similar_links
+
+- **Input**: `link_id`, `min_count` (default 2)
+- **Output**: `{ suggestions: [{ name, count, reason }] }`
+
+### get_sorting_dashboard
+
+- **Input**: none
+- **Output**: unsorted/duplicate counts, empty collections, largest collections
+
+## Workflow tools (write — LINKWARDEN_WRITE)
+
+Mutating workflow tools default to `dry_run=true`. Set `dry_run=false` to apply.
+
+### smart_save_link
+
+- **Input**: `url`, optional `collection`/`tags`/`name`/…, `auto_apply_suggestions` (default false)
+- **Output**: save result + suggestions used
+
+### apply_triage_plan
+
+- **Input**: `plan: [{ link_id, collection?, tags? }]`, `dry_run` (default true)
+- **Output**: `{ would_update | updated_count, failures? }` — bulk-capped
+
+### auto_tag_by_domain
+
+- **Input**: `link_ids`, `dry_run` (default true)
+- **Output**: domain-rule tag proposals; applies only vocabulary matches
+
+### bulk_sort_by_rules
+
+- **Input**: `rules: [{ domain_pattern, collection?, tags? }]`, `dry_run` (default true), `collection` source (default Unorganized)
+- **Output**: matches + optional apply; bulk-capped when applying
+
 ## Bulk cap
 
 All multi-record tools enforce `LINKWARDEN_MAX_BULK` (default 25). Refusal message includes requested count and cap. No partial application.

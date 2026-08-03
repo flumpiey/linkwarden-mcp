@@ -1,0 +1,9 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Linkwarden API (vendored placeholder)",
+    "version": "1.0.0",
+    "description": "Provenance reference only. Runtime uses live Linkwarden API. See DIVERGENCES.md for source-tree overrides."
+  },
+  "paths": {}
+}
