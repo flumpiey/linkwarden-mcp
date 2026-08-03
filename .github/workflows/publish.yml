@@ -1,3 +1,20 @@
+# Manual pre-release steps (do these before creating a GitHub Release):
+#
+# 1. Bump version in ALL of:
+#      - pyproject.toml
+#      - server.json
+#      - mcpb/manifest.json
+#      - .cursor-plugin/plugin.json
+# 2. Commit the version bump
+# 3. Tag and push:
+#      git tag v0.1.0
+#      git push origin v0.1.0
+# 4. Create a GitHub Release from that tag (Publishing the release triggers this workflow)
+#
+# PyPI: trusted publisher OIDC (no PYPI_TOKEN secret). Requires GitHub environment "pypi"
+# and a pending/trusted publisher on https://pypi.org for flumpiey/linkwarden-mcp + publish.yml.
+# MCP Registry: published via mcp-publisher github-oidc after PyPI upload.
+
 name: publish
 
 on:
@@ -13,9 +30,12 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install build twine hatchling
-      - run: python -m build
-      - run: twine check dist/*
+      - name: Install build tools
+        run: pip install build twine
+      - name: Build
+        run: python -m build
+      - name: Check
+        run: twine check dist/*
       - uses: actions/upload-artifact@v4
         with:
           name: python-package-distributions
@@ -36,4 +56,12 @@ jobs:
         with:
           name: python-package-distributions
           path: dist/
-      - uses: pypa/gh-action-pypi-publish@release/v1
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+      - name: Install mcp-publisher
+        run: |
+          curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
+      - name: Publish to MCP Registry
+        run: |
+          ./mcp-publisher login github-oidc
+          ./mcp-publisher publish

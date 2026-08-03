@@ -39,7 +39,7 @@ All tools use verb prefixes for client approval hints. Annotations: read tools `
 - **Input**: none
 - **Output**: See `data-model.md` overview shape; `tags_partial` when pagination incomplete
 
-## Write tools (LINKWARDEN_WRITE)
+## Write tools (LINKWARDEN_MCP_WRITE_SCOPES)
 
 ### save_link
 
@@ -151,7 +151,7 @@ Heuristic compose tools. Scans capped at 500 links per collection query. Never i
 - **Input**: none
 - **Output**: unsorted/duplicate counts, empty collections, largest collections
 
-## Workflow tools (write — LINKWARDEN_WRITE)
+## Workflow tools (write — LINKWARDEN_MCP_WRITE_SCOPES)
 
 Mutating workflow tools default to `dry_run=true`. Set `dry_run=false` to apply.
 

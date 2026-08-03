@@ -9,6 +9,7 @@ from urllib.parse import urlparse
 import httpx
 
 from linkwarden_mcp.errors import ApiError, DeniedPathError
+from linkwarden_mcp.scopes import WRITE_METHODS, WritePolicy
 
 DENIED_PREFIXES = (
     "/api/v1/tokens",
@@ -112,8 +113,10 @@ class LinkwardenClient:
         token: str,
         *,
         client: httpx.AsyncClient | None = None,
+        policy: WritePolicy | None = None,
     ) -> None:
         self.base_url = base_url.rstrip("/")
+        self.policy = policy or WritePolicy(frozenset(), frozenset())
         self._owns_client = client is None
         self._client = client or httpx.AsyncClient(
             base_url=self.base_url,
@@ -134,6 +137,8 @@ class LinkwardenClient:
         reason = deny_reason(method, url_path, json=json)
         if reason:
             raise DeniedPathError(reason)
+        if method in WRITE_METHODS:
+            self.policy.authorize(method, url_path)
         try:
             response = await self._client.request(
                 method, url_path, params=params, json=json

@@ -1,4 +1,4 @@
-"""Environment parsing, permissions, and lazy client factory."""
+"""Environment parsing and lazy client factory."""
 
 from __future__ import annotations
 
@@ -7,30 +7,10 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from linkwarden_mcp.errors import ConfigError
+from linkwarden_mcp.scopes import WritePolicy
 
 if TYPE_CHECKING:
     from linkwarden_mcp.client import LinkwardenClient
-
-VALID_PERMISSION_VALUES = frozenset({"1", "true", "yes", "on"})
-INVALID_PERMISSION_VALUES = frozenset({"*", "all"})
-
-
-def _parse_flag(name: str, environ: dict[str, str]) -> bool:
-    raw = environ.get(name, "").strip()
-    if not raw:
-        return False
-    lowered = raw.lower()
-    if lowered in INVALID_PERMISSION_VALUES or "*" in raw or "?" in raw:
-        raise ConfigError(
-            f"Invalid value for {name}: {raw!r}. "
-            "Valid permission values: 1, true, yes, or unset."
-        )
-    if lowered in VALID_PERMISSION_VALUES:
-        return True
-    raise ConfigError(
-        f"Unrecognised value for {name}: {raw!r}. "
-        "Valid permission values: 1, true, yes, or unset."
-    )
 
 
 def _parse_bulk_cap(environ: dict[str, str]) -> int:
@@ -52,9 +32,6 @@ def _parse_bulk_cap(environ: dict[str, str]) -> int:
 class Settings:
     url: str
     token: str
-    write: bool
-    delete: bool
-    delete_collections: bool
     max_bulk: int
 
     @classmethod
@@ -63,9 +40,6 @@ class Settings:
         return cls(
             url=env.get("LINKWARDEN_URL", "").strip(),
             token=env.get("LINKWARDEN_TOKEN", "").strip(),
-            write=_parse_flag("LINKWARDEN_WRITE", env),
-            delete=_parse_flag("LINKWARDEN_DELETE", env),
-            delete_collections=_parse_flag("LINKWARDEN_DELETE_COLLECTIONS", env),
             max_bulk=_parse_bulk_cap(env),
         )
 
@@ -78,6 +52,7 @@ class Settings:
 
 _settings: Settings | None = None
 _client: LinkwardenClient | None = None
+_policy: WritePolicy | None = None
 
 
 def get_settings(environ: dict[str, str] | None = None) -> Settings:
@@ -89,10 +64,20 @@ def get_settings(environ: dict[str, str] | None = None) -> Settings:
     return _settings
 
 
+def get_policy(environ: dict[str, str] | None = None) -> WritePolicy:
+    global _policy
+    if environ is not None:
+        return WritePolicy.from_env(environ)
+    if _policy is None:
+        _policy = WritePolicy.from_env()
+    return _policy
+
+
 def reset_state() -> None:
-    global _settings, _client
+    global _settings, _client, _policy
     _settings = None
     _client = None
+    _policy = None
 
 
 def get_client(environ: dict[str, str] | None = None) -> LinkwardenClient:
@@ -102,11 +87,17 @@ def get_client(environ: dict[str, str] | None = None) -> LinkwardenClient:
         settings.validate_runtime()
         from linkwarden_mcp.client import LinkwardenClient
 
-        return LinkwardenClient(settings.url, settings.token)
+        return LinkwardenClient(
+            settings.url,
+            settings.token,
+            policy=WritePolicy.from_env(environ),
+        )
     if _client is None:
         settings = get_settings()
         settings.validate_runtime()
         from linkwarden_mcp.client import LinkwardenClient
 
-        _client = LinkwardenClient(settings.url, settings.token)
+        _client = LinkwardenClient(
+            settings.url, settings.token, policy=get_policy()
+        )
     return _client

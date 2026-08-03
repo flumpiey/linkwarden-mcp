@@ -18,7 +18,6 @@ FORBIDDEN_PREFIXES = (
     ".env.example",
     ".github/",
     "mcpb/",
-    ".cursor/",
 )
 
 
@@ -36,9 +35,9 @@ def test_sdist_excludes_dev_paths(target: str) -> None:
     archive = archives[-1]
     with tarfile.open(archive, "r:gz") as tf:
         names = tf.getnames()
-        for forbidden in FORBIDDEN_PREFIXES:
-            hits = [n for n in names if forbidden in n or n.endswith(forbidden.rstrip("/"))]
-            assert not hits, f"sdist contains forbidden path {forbidden!r}: {hits[:5]}"
+    for forbidden in FORBIDDEN_PREFIXES:
+        hits = [n for n in names if forbidden in n or n.endswith(forbidden.rstrip("/"))]
+        assert not hits, f"sdist contains forbidden path {forbidden!r}: {hits[:5]}"
 
-        assert any("src/linkwarden_mcp" in n for n in names)
-        assert any("tests/" in n for n in names)
+    assert any("src/linkwarden_mcp" in n for n in names)
+    assert any("tests/" in n for n in names)

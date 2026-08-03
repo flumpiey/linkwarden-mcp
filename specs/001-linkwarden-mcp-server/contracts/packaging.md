@@ -45,55 +45,18 @@ include = [
 
 File **must** be named `.github/workflows/publish.yml` — must match PyPI trusted publisher workflow name exactly.
 
-```yaml
-name: publish
+See `.github/workflows/publish.yml` (must keep that filename for the trusted publisher). Trigger: GitHub Release `published` or `workflow_dispatch`. Flow: `python -m build` → `twine check` → `pypa/gh-action-pypi-publish` (OIDC, environment `pypi`) → `mcp-publisher login github-oidc && mcp-publisher publish`.
 
-on:
-  release:
-    types: [published]
-  workflow_dispatch:
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - run: pip install build twine
-      - run: python -m build
-      - run: twine check dist/*
-      - uses: actions/upload-artifact@v4
-        with:
-          name: python-package-distributions
-          path: dist/
-
-  publish:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: pypi
-      url: https://pypi.org/p/linkwarden-mcp
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
-        with:
-          name: python-package-distributions
-          path: dist/
-      - uses: pypa/gh-action-pypi-publish@release/v1
-```
+Pre-release version bump must update: `pyproject.toml`, `server.json`, `mcpb/manifest.json`, `.cursor-plugin/plugin.json`. Then `git tag vX.Y.Z && git push origin vX.Y.Z` and create a GitHub Release from the tag.
 
 ## Pre-first-publish checklist
 
 - [ ] GitHub environment **`pypi`** exists (Settings → Environments)
-- [ ] PyPI trusted publisher registered for this repo + `publish.yml` workflow
+- [ ] PyPI trusted publisher registered for this repo + `publish.yml` workflow (no `PYPI_TOKEN`)
 - [ ] `project.description` reviewed — no placeholder text
 - [ ] `tests/test_sdist_contents.py` passes locally
 - [ ] `twine check dist/*` passes in CI build job
+- [ ] Version fields aligned across `pyproject.toml` / `server.json` / `mcpb/manifest.json` / `.cursor-plugin/plugin.json`
 
 ## Dev dependencies
 

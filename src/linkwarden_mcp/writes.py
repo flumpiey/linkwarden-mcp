@@ -1,4 +1,4 @@
-"""Write MCP tools (LINKWARDEN_WRITE)."""
+"""Write MCP tools (LINKWARDEN_MCP_WRITE_SCOPES)."""
 
 from __future__ import annotations
 

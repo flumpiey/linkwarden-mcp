@@ -5,7 +5,7 @@ from __future__ import annotations
 import httpx
 import pytest
 import respx
-from conftest import BASE_URL
+from conftest import BASE_URL, FULL_WRITE_POLICY
 
 from linkwarden_mcp.client import LinkwardenClient
 from linkwarden_mcp.errors import BulkCapExceeded
@@ -22,7 +22,7 @@ async def test_save_link_resolves_existing_collection(auth_env: None) -> None:
     post = respx.post(f"{BASE_URL}/api/v1/links").mock(
         return_value=httpx.Response(200, json={"id": 100})
     )
-    client = LinkwardenClient(BASE_URL, "token")
+    client = LinkwardenClient(BASE_URL, "token", policy=FULL_WRITE_POLICY)
     out = await save_link(
         client,
         NameResolver(client),
@@ -44,7 +44,7 @@ async def test_duplicate_url_plain_message(auth_env: None) -> None:
     respx.post(f"{BASE_URL}/api/v1/links").mock(
         return_value=httpx.Response(409, json={"message": "already exists"})
     )
-    client = LinkwardenClient(BASE_URL, "token")
+    client = LinkwardenClient(BASE_URL, "token", policy=FULL_WRITE_POLICY)
     out = await save_link(
         client,
         NameResolver(client),
@@ -58,7 +58,7 @@ async def test_duplicate_url_plain_message(auth_env: None) -> None:
 @pytest.mark.asyncio
 @respx.mock
 async def test_organise_links_bulk_cap(auth_env: None) -> None:
-    client = LinkwardenClient(BASE_URL, "token")
+    client = LinkwardenClient(BASE_URL, "token", policy=FULL_WRITE_POLICY)
     with pytest.raises(BulkCapExceeded) as exc:
         await organise_links(
             client,
@@ -74,7 +74,7 @@ async def test_organise_links_bulk_cap(auth_env: None) -> None:
 @pytest.mark.asyncio
 @respx.mock
 async def test_queue_archive_bulk_cap(auth_env: None) -> None:
-    client = LinkwardenClient(BASE_URL, "token")
+    client = LinkwardenClient(BASE_URL, "token", policy=FULL_WRITE_POLICY)
     with pytest.raises(BulkCapExceeded):
         await queue_archive(client, link_ids=list(range(26)), max_bulk=25)
     await client.aclose()

@@ -1,4 +1,4 @@
-"""FastMCP server with conditional tool registration."""
+"""FastMCP server with scope-gated tool registration."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from typing import Any
 from fastmcp import FastMCP
 
 from linkwarden_mcp import deletes, reads, workflows, writes
-from linkwarden_mcp.config import Settings, get_client, get_settings, reset_state
+from linkwarden_mcp.config import Settings, get_client, get_policy, get_settings, reset_state
 from linkwarden_mcp.errors import (
     AmbiguousNameError,
     ApiError,
@@ -18,12 +18,15 @@ from linkwarden_mcp.errors import (
     UnknownNameError,
 )
 from linkwarden_mcp.resolve import NameResolver
+from linkwarden_mcp.scopes import DOMAIN_SCOPES, ScopeConfigError, WritePolicy, WritesDeniedError
+from linkwarden_mcp.task_tools import require_delete_scope, require_write_scopes
 
 
 @asynccontextmanager
 async def _server_lifespan(_server: FastMCP) -> AsyncIterator[None]:
     settings = get_settings()
     settings.validate_runtime()
+    get_policy()
     client = get_client()
     try:
         await client.get("/api/v1/users/me")
@@ -48,6 +51,43 @@ def _resolver() -> NameResolver:
 
 def _settings() -> Settings:
     return get_settings()
+
+
+def register_list_resources() -> None:
+    @mcp.tool(
+        name="list_resources",
+        annotations=READ_ANNOTATIONS,
+        description=(
+            "List Linkwarden MCP capabilities and current write/delete scope boundary. "
+            "Call first when unsure whether mutations are enabled."
+        ),
+    )
+    async def list_resources() -> dict[str, Any]:
+        policy = get_policy()
+        write_scopes = sorted(policy.write_scopes)
+        delete_scopes = sorted(policy.delete_scopes)
+        effective_write = sorted(policy.effective_write_scopes)
+        read_only = not (write_scopes or delete_scopes)
+        if read_only:
+            boundary = (
+                "Default is read-only: no write or delete tools are registered. "
+                "Set LINKWARDEN_MCP_WRITE_SCOPES / LINKWARDEN_MCP_DELETE_SCOPES to enable "
+                "mutations. Recommended write scopes: links,collections (not all domains)."
+            )
+        else:
+            boundary = (
+                f"Scoped writes enabled. effective_write_scopes={effective_write}. "
+                "DELETE is never implied by WRITE. Prefer narrow scopes "
+                "(links,collections) over raw or all domains."
+            )
+        return {
+            "read_only": read_only,
+            "write_scopes": write_scopes,
+            "delete_scopes": delete_scopes,
+            "effective_write_scopes": effective_write,
+            "valid_scopes": sorted(DOMAIN_SCOPES | {"raw"}),
+            "boundary": boundary,
+        }
 
 
 def register_read_tools() -> None:
@@ -98,8 +138,15 @@ def register_read_tools() -> None:
         return await reads.get_library_overview(_resolver())
 
 
-def register_write_tools() -> None:
-    @mcp.tool(name="save_link", annotations=WRITE_ANNOTATIONS)
+def register_links_write_tools() -> None:
+    @mcp.tool(
+        name="save_link",
+        annotations=WRITE_ANNOTATIONS,
+        description=(
+            "Save a URL into a collection (by name). "
+            "Requires 'links' in LINKWARDEN_MCP_WRITE_SCOPES."
+        ),
+    )
     async def save_link_tool(
         url: str,
         collection: str,
@@ -108,7 +155,7 @@ def register_write_tools() -> None:
         description: str | None = None,
         note: str | None = None,
     ) -> dict[str, Any]:
-        """Save a URL into a collection (by name)."""
+        require_write_scopes(get_policy(), "links")
         return await writes.save_link(
             get_client(),
             _resolver(),
@@ -121,13 +168,20 @@ def register_write_tools() -> None:
             max_bulk=_settings().max_bulk,
         )
 
-    @mcp.tool(name="organise_links", annotations=WRITE_ANNOTATIONS)
+    @mcp.tool(
+        name="organise_links",
+        annotations=WRITE_ANNOTATIONS,
+        description=(
+            "Move or retag multiple links. "
+            "Requires 'links' in LINKWARDEN_MCP_WRITE_SCOPES."
+        ),
+    )
     async def organise_links_tool(
         link_ids: list[int],
         collection: str | None = None,
         tags: list[str] | None = None,
     ) -> dict[str, Any]:
-        """Move or retag multiple links."""
+        require_write_scopes(get_policy(), "links")
         return await writes.organise_links(
             get_client(),
             _resolver(),
@@ -137,17 +191,14 @@ def register_write_tools() -> None:
             max_bulk=_settings().max_bulk,
         )
 
-    @mcp.tool(name="create_collection", annotations=WRITE_ANNOTATIONS)
-    async def create_collection_tool(
-        name: str,
-        parent: str | None = None,
-    ) -> dict[str, Any]:
-        """Create a new collection."""
-        return await writes.create_collection(
-            get_client(), _resolver(), name=name, parent=parent
-        )
-
-    @mcp.tool(name="update_link", annotations=WRITE_ANNOTATIONS)
+    @mcp.tool(
+        name="update_link",
+        annotations=WRITE_ANNOTATIONS,
+        description=(
+            "Update link fields (read-modify-write). "
+            "Requires 'links' in LINKWARDEN_MCP_WRITE_SCOPES."
+        ),
+    )
     async def update_link_tool(
         link_id: int,
         name: str | None = None,
@@ -157,7 +208,7 @@ def register_write_tools() -> None:
         collection: str | None = None,
         tags: list[str] | None = None,
     ) -> dict[str, Any]:
-        """Update link fields (read-modify-write)."""
+        require_write_scopes(get_policy(), "links")
         return await writes.update_link(
             get_client(),
             _resolver(),
@@ -170,28 +221,170 @@ def register_write_tools() -> None:
             tags=tags,
         )
 
-    @mcp.tool(name="queue_archive", annotations=WRITE_ANNOTATIONS)
+    @mcp.tool(
+        name="queue_archive",
+        annotations=WRITE_ANNOTATIONS,
+        description=(
+            "Queue link preservation (async; not immediate). "
+            "Requires 'links' in LINKWARDEN_MCP_WRITE_SCOPES."
+        ),
+    )
     async def queue_archive_tool(link_ids: list[int]) -> dict[str, Any]:
-        """Queue link preservation (async; not immediate)."""
+        require_write_scopes(get_policy(), "links")
         return await writes.queue_archive(
             get_client(), link_ids=link_ids, max_bulk=_settings().max_bulk
         )
 
 
-def register_delete_tools() -> None:
-    @mcp.tool(name="delete_links", annotations=DESTRUCTIVE_ANNOTATIONS)
+def register_collections_write_tools() -> None:
+    @mcp.tool(
+        name="create_collection",
+        annotations=WRITE_ANNOTATIONS,
+        description=(
+            "Create a new collection. "
+            "Requires 'collections' in LINKWARDEN_MCP_WRITE_SCOPES."
+        ),
+    )
+    async def create_collection_tool(
+        name: str,
+        parent: str | None = None,
+    ) -> dict[str, Any]:
+        require_write_scopes(get_policy(), "collections")
+        return await writes.create_collection(
+            get_client(), _resolver(), name=name, parent=parent
+        )
+
+
+def register_links_workflow_write_tools() -> None:
+    @mcp.tool(
+        name="smart_save_link",
+        annotations=WRITE_ANNOTATIONS,
+        description=(
+            "Save a URL with optional heuristic collection/tags. "
+            "Requires 'links' in LINKWARDEN_MCP_WRITE_SCOPES."
+        ),
+    )
+    async def smart_save_link_tool(
+        url: str,
+        collection: str | None = None,
+        tags: list[str] | None = None,
+        name: str | None = None,
+        description: str | None = None,
+        note: str | None = None,
+        auto_apply_suggestions: bool = False,
+    ) -> dict[str, Any]:
+        require_write_scopes(get_policy(), "links")
+        return await workflows.smart_save_link(
+            get_client(),
+            _resolver(),
+            url=url,
+            collection=collection,
+            tags=tags,
+            name=name,
+            description=description,
+            note=note,
+            auto_apply_suggestions=auto_apply_suggestions,
+            max_bulk=_settings().max_bulk,
+        )
+
+    @mcp.tool(
+        name="apply_triage_plan",
+        annotations=WRITE_ANNOTATIONS,
+        description=(
+            "Apply [{link_id, collection?, tags?}]. Default dry_run=true; bulk-capped. "
+            "Requires 'links' in LINKWARDEN_MCP_WRITE_SCOPES."
+        ),
+    )
+    async def apply_triage_plan_tool(
+        plan: list[dict[str, Any]],
+        dry_run: bool = True,
+    ) -> dict[str, Any]:
+        require_write_scopes(get_policy(), "links")
+        return await workflows.apply_triage_plan(
+            get_client(),
+            _resolver(),
+            plan=plan,
+            dry_run=dry_run,
+            max_bulk=_settings().max_bulk,
+        )
+
+    @mcp.tool(
+        name="bulk_sort_by_rules",
+        annotations=WRITE_ANNOTATIONS,
+        description=(
+            "Match domain_pattern rules then organise. Default dry_run=true; bulk-capped. "
+            "Requires 'links' in LINKWARDEN_MCP_WRITE_SCOPES."
+        ),
+    )
+    async def bulk_sort_by_rules_tool(
+        rules: list[dict[str, Any]],
+        dry_run: bool = True,
+        collection: str | None = "Unorganized",
+    ) -> dict[str, Any]:
+        require_write_scopes(get_policy(), "links")
+        return await workflows.bulk_sort_by_rules(
+            get_client(),
+            _resolver(),
+            rules=rules,
+            dry_run=dry_run,
+            collection=collection,
+            max_bulk=_settings().max_bulk,
+        )
+
+
+def register_tags_workflow_write_tools() -> None:
+    @mcp.tool(
+        name="auto_tag_by_domain",
+        annotations=WRITE_ANNOTATIONS,
+        description=(
+            "Apply domain→tag rules. Default dry_run=true; only existing tag names. "
+            "Requires 'links' and 'tags' in LINKWARDEN_MCP_WRITE_SCOPES."
+        ),
+    )
+    async def auto_tag_by_domain_tool(
+        link_ids: list[int],
+        dry_run: bool = True,
+    ) -> dict[str, Any]:
+        require_write_scopes(get_policy(), "links", "tags")
+        return await workflows.auto_tag_by_domain(
+            get_client(),
+            _resolver(),
+            link_ids=link_ids,
+            dry_run=dry_run,
+            max_bulk=_settings().max_bulk,
+        )
+
+
+def register_links_delete_tools() -> None:
+    @mcp.tool(
+        name="delete_links",
+        annotations=DESTRUCTIVE_ANNOTATIONS,
+        description=(
+            "Delete multiple links. "
+            "Requires 'links' in LINKWARDEN_MCP_DELETE_SCOPES."
+        ),
+    )
     async def delete_links_tool(link_ids: list[int]) -> dict[str, Any]:
-        """Delete multiple links."""
+        require_delete_scope(get_policy(), "links")
         return await deletes.delete_links(
             get_client(), link_ids=link_ids, max_bulk=_settings().max_bulk
         )
 
-    @mcp.tool(name="delete_tags", annotations=DESTRUCTIVE_ANNOTATIONS)
+
+def register_tags_delete_tools() -> None:
+    @mcp.tool(
+        name="delete_tags",
+        annotations=DESTRUCTIVE_ANNOTATIONS,
+        description=(
+            "Delete tags by id or name. "
+            "Requires 'tags' in LINKWARDEN_MCP_DELETE_SCOPES."
+        ),
+    )
     async def delete_tags_tool(
         tag_ids: list[int] | None = None,
         tag_names: list[str] | None = None,
     ) -> dict[str, Any]:
-        """Delete tags by id or name."""
+        require_delete_scope(get_policy(), "tags")
         return await deletes.delete_tags(
             get_client(),
             _resolver(),
@@ -200,9 +393,16 @@ def register_delete_tools() -> None:
             max_bulk=_settings().max_bulk,
         )
 
-    @mcp.tool(name="merge_tags", annotations=DESTRUCTIVE_ANNOTATIONS)
+    @mcp.tool(
+        name="merge_tags",
+        annotations=DESTRUCTIVE_ANNOTATIONS,
+        description=(
+            "Merge tags into a new tag name (destructive). "
+            "Requires 'tags' in LINKWARDEN_MCP_DELETE_SCOPES."
+        ),
+    )
     async def merge_tags_tool(new_tag_name: str, tag_ids: list[int]) -> dict[str, Any]:
-        """Merge tags into a new tag name (destructive)."""
+        require_delete_scope(get_policy(), "tags")
         return await deletes.merge_tags(
             get_client(),
             _resolver(),
@@ -212,10 +412,17 @@ def register_delete_tools() -> None:
         )
 
 
-def register_delete_collection_tool() -> None:
-    @mcp.tool(name="delete_collection", annotations=DESTRUCTIVE_ANNOTATIONS)
+def register_collections_delete_tools() -> None:
+    @mcp.tool(
+        name="delete_collection",
+        annotations=DESTRUCTIVE_ANNOTATIONS,
+        description=(
+            "Delete a collection and all its links. "
+            "Requires 'collections' in LINKWARDEN_MCP_DELETE_SCOPES."
+        ),
+    )
     async def delete_collection_tool(collection: str | int) -> dict[str, Any]:
-        """Delete a collection and all its links."""
+        require_delete_scope(get_policy(), "collections")
         return await deletes.delete_collection(
             get_client(), _resolver(), collection=collection
         )
@@ -327,90 +534,29 @@ def register_workflow_read_tools() -> None:
         return await workflows.get_sorting_dashboard(get_client(), _resolver())
 
 
-def register_workflow_write_tools() -> None:
-    @mcp.tool(name="smart_save_link", annotations=WRITE_ANNOTATIONS)
-    async def smart_save_link_tool(
-        url: str,
-        collection: str | None = None,
-        tags: list[str] | None = None,
-        name: str | None = None,
-        description: str | None = None,
-        note: str | None = None,
-        auto_apply_suggestions: bool = False,
-    ) -> dict[str, Any]:
-        """Save a URL with optional heuristic collection/tags (LINKWARDEN_WRITE)."""
-        return await workflows.smart_save_link(
-            get_client(),
-            _resolver(),
-            url=url,
-            collection=collection,
-            tags=tags,
-            name=name,
-            description=description,
-            note=note,
-            auto_apply_suggestions=auto_apply_suggestions,
-            max_bulk=_settings().max_bulk,
-        )
-
-    @mcp.tool(name="apply_triage_plan", annotations=WRITE_ANNOTATIONS)
-    async def apply_triage_plan_tool(
-        plan: list[dict[str, Any]],
-        dry_run: bool = True,
-    ) -> dict[str, Any]:
-        """Apply [{link_id, collection?, tags?}]. Default dry_run=true; bulk-capped."""
-        return await workflows.apply_triage_plan(
-            get_client(),
-            _resolver(),
-            plan=plan,
-            dry_run=dry_run,
-            max_bulk=_settings().max_bulk,
-        )
-
-    @mcp.tool(name="auto_tag_by_domain", annotations=WRITE_ANNOTATIONS)
-    async def auto_tag_by_domain_tool(
-        link_ids: list[int],
-        dry_run: bool = True,
-    ) -> dict[str, Any]:
-        """Apply domain→tag rules. Default dry_run=true; only existing tag names."""
-        return await workflows.auto_tag_by_domain(
-            get_client(),
-            _resolver(),
-            link_ids=link_ids,
-            dry_run=dry_run,
-            max_bulk=_settings().max_bulk,
-        )
-
-    @mcp.tool(name="bulk_sort_by_rules", annotations=WRITE_ANNOTATIONS)
-    async def bulk_sort_by_rules_tool(
-        rules: list[dict[str, Any]],
-        dry_run: bool = True,
-        collection: str | None = "Unorganized",
-    ) -> dict[str, Any]:
-        """Match domain_pattern rules then organise. Default dry_run=true; bulk-capped."""
-        return await workflows.bulk_sort_by_rules(
-            get_client(),
-            _resolver(),
-            rules=rules,
-            dry_run=dry_run,
-            collection=collection,
-            max_bulk=_settings().max_bulk,
-        )
-
-
-def register_all_tools(settings: Settings | None = None) -> None:
+def register_all_tools(policy: WritePolicy | None = None) -> None:
     global _tools_registered
     if _tools_registered:
         return
-    cfg = settings or get_settings()
+    p = policy or get_policy()
+    register_list_resources()
     register_read_tools()
     register_workflow_read_tools()
-    if cfg.write:
-        register_write_tools()
-        register_workflow_write_tools()
-    if cfg.delete:
-        register_delete_tools()
-    if cfg.delete_collections:
-        register_delete_collection_tool()
+    ew = p.effective_write_scopes
+    ed = p.effective_delete_scopes
+    if "links" in ew:
+        register_links_write_tools()
+        register_links_workflow_write_tools()
+    if "collections" in ew:
+        register_collections_write_tools()
+    if "links" in ew and "tags" in ew:
+        register_tags_workflow_write_tools()
+    if "links" in ed:
+        register_links_delete_tools()
+    if "tags" in ed:
+        register_tags_delete_tools()
+    if "collections" in ed:
+        register_collections_delete_tools()
     _tools_registered = True
 
 
@@ -428,8 +574,9 @@ def main() -> None:
     try:
         settings = get_settings()
         settings.validate_runtime()
-        register_all_tools(settings)
-    except ConfigError as exc:
+        policy = get_policy()
+        register_all_tools(policy)
+    except (ConfigError, ScopeConfigError) as exc:
         raise SystemExit(str(exc)) from exc
 
     mcp.run()
@@ -440,7 +587,10 @@ __all__ = [
     "ApiError",
     "BulkCapExceeded",
     "ConfigError",
+    "ScopeConfigError",
     "UnknownNameError",
+    "WritesDeniedError",
+    "get_policy",
     "main",
     "mcp",
     "register_all_tools",

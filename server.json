@@ -1,0 +1,55 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.flumpiey/linkwarden-mcp",
+  "title": "Linkwarden MCP",
+  "description": "MCP server for Linkwarden bookmarks: read-first search and preserved content, with opt-in scoped write and delete tools.",
+  "repository": {
+    "url": "https://github.com/flumpiey/linkwarden-mcp",
+    "source": "github"
+  },
+  "version": "0.1.0",
+  "websiteUrl": "https://github.com/flumpiey/linkwarden-mcp",
+  "packages": [
+    {
+      "registryType": "pypi",
+      "registryBaseUrl": "https://pypi.org",
+      "identifier": "linkwarden-mcp",
+      "version": "0.1.0",
+      "runtimeHint": "uvx",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "LINKWARDEN_URL",
+          "description": "Linkwarden instance base URL",
+          "isRequired": true
+        },
+        {
+          "name": "LINKWARDEN_TOKEN",
+          "description": "Bearer API token from Linkwarden settings",
+          "isRequired": true,
+          "isSecret": true
+        },
+        {
+          "name": "LINKWARDEN_MCP_WRITE_SCOPES",
+          "description": "Comma-separated write scopes: links,collections,tags,raw. Empty = read-only.",
+          "isRequired": false,
+          "default": ""
+        },
+        {
+          "name": "LINKWARDEN_MCP_DELETE_SCOPES",
+          "description": "Comma-separated delete scopes (never implied by write). Empty = no deletes.",
+          "isRequired": false,
+          "default": ""
+        },
+        {
+          "name": "LINKWARDEN_MAX_BULK",
+          "description": "Max records per bulk op (default 25)",
+          "isRequired": false,
+          "default": "25"
+        }
+      ]
+    }
+  ]
+}

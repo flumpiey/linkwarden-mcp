@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "linkwarden": {
+      "command": "uvx",
+      "args": ["linkwarden-mcp"],
+      "env": {
+        "LINKWARDEN_URL": "${LINKWARDEN_URL}",
+        "LINKWARDEN_TOKEN": "${LINKWARDEN_TOKEN}",
+        "LINKWARDEN_MCP_WRITE_SCOPES": "${LINKWARDEN_MCP_WRITE_SCOPES}",
+        "LINKWARDEN_MCP_DELETE_SCOPES": "${LINKWARDEN_MCP_DELETE_SCOPES}"
+      }
+    }
+  }
+}

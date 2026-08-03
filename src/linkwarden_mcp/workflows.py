@@ -242,7 +242,7 @@ async def apply_triage_plan(
             "dry_run": True,
             "would_update": len(actions),
             "actions": actions,
-            "message": "Dry run only. Pass dry_run=false to apply (requires LINKWARDEN_WRITE).",
+            "message": "Dry run only. Pass dry_run=false to apply (requires matching LINKWARDEN_MCP_WRITE_SCOPES).",
         }
     updated = 0
     failures: list[dict[str, Any]] = []

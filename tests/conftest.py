@@ -4,7 +4,15 @@ from __future__ import annotations
 
 import pytest
 
+from linkwarden_mcp.scopes import WritePolicy
+
 BASE_URL = "http://linkwarden.test"
+
+# Policy that allows all mutating API paths used in unit tests.
+FULL_WRITE_POLICY = WritePolicy(
+    frozenset({"links", "collections", "tags"}),
+    frozenset({"links", "collections", "tags"}),
+)
 
 
 @pytest.fixture
@@ -25,9 +33,17 @@ def _reset(monkeypatch: pytest.MonkeyPatch) -> None:
 
     reset_state()
     reset_registration()
-    monkeypatch.delenv("LINKWARDEN_WRITE", raising=False)
-    monkeypatch.delenv("LINKWARDEN_DELETE", raising=False)
-    monkeypatch.delenv("LINKWARDEN_DELETE_COLLECTIONS", raising=False)
+    monkeypatch.delenv("LINKWARDEN_MCP_WRITE_SCOPES", raising=False)
+    monkeypatch.delenv("LINKWARDEN_MCP_DELETE_SCOPES", raising=False)
+    for name in (
+        "LINKWARDEN_MCP_ALLOW_WRITES",
+        "ALLOW_WRITES",
+        "LINKWARDEN_MCP_WRITES",
+        "LINKWARDEN_WRITE",
+        "LINKWARDEN_DELETE",
+        "LINKWARDEN_DELETE_COLLECTIONS",
+    ):
+        monkeypatch.delenv(name, raising=False)
     monkeypatch.delenv("LINKWARDEN_MAX_BULK", raising=False)
     yield
     reset_state()

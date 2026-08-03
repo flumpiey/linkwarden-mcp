@@ -6,33 +6,33 @@
     "variables": {
         "type": "object",
         "properties": {
-            "LINKWARDEN_API_URL": {
+            "LINKWARDEN_URL": {
                 "type": "string",
-                "title": "Linkwarden API URL",
-                "description": "Instance API base (e.g. http://127.0.0.1:3000/api/v1).",
-                "default": "http://127.0.0.1:3000/api/v1"
+                "title": "Linkwarden URL",
+                "description": "Instance base URL (e.g. https://links.example.com).",
+                "default": "http://127.0.0.1:3000"
             },
-            "LINKWARDEN_API_KEY": {
+            "LINKWARDEN_TOKEN": {
                 "type": "string",
-                "title": "Linkwarden API key",
-                "description": "Access token from Linkwarden settings."
+                "title": "Linkwarden API token",
+                "description": "Bearer API token from Linkwarden settings."
             },
             "LINKWARDEN_MCP_WRITE_SCOPES": {
                 "type": "string",
                 "title": "Write scopes",
-                "description": "Comma-separated domains for create/update. Empty = read-only.",
+                "description": "Comma-separated domains for create/update: links,collections,tags,raw. Recommended: links,collections. Leave empty for read-only.",
                 "default": ""
             },
             "LINKWARDEN_MCP_DELETE_SCOPES": {
                 "type": "string",
                 "title": "Delete scopes",
-                "description": "Comma-separated domains for delete. Empty = no deletes.",
+                "description": "Comma-separated domains for delete only (never implied by write): links,collections,tags,raw. Leave empty for no deletes.",
                 "default": ""
             }
         },
         "required": [
-            "LINKWARDEN_API_URL",
-            "LINKWARDEN_API_KEY"
+            "LINKWARDEN_URL",
+            "LINKWARDEN_TOKEN"
         ]
     }
 }

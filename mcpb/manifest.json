@@ -1,0 +1,64 @@
+{
+  "manifest_version": "0.3",
+  "name": "linkwarden-mcp",
+  "version": "0.1.0",
+  "description": "MCP server for Linkwarden bookmarks: read-first search and preserved content, with opt-in scoped write and delete tools.",
+  "author": {
+    "name": "flumpiey",
+    "url": "https://github.com/flumpiey/linkwarden-mcp"
+  },
+  "homepage": "https://github.com/flumpiey/linkwarden-mcp",
+  "documentation": "https://github.com/flumpiey/linkwarden-mcp#readme",
+  "support": "https://github.com/flumpiey/linkwarden-mcp/issues",
+  "server": {
+    "type": "python",
+    "entry_point": "server/main.py",
+    "mcp_config": {
+      "command": "uvx",
+      "args": [
+        "linkwarden-mcp"
+      ],
+      "env": {
+        "LINKWARDEN_URL": "${user_config.url}",
+        "LINKWARDEN_TOKEN": "${user_config.token}",
+        "LINKWARDEN_MCP_WRITE_SCOPES": "${user_config.write_scopes}",
+        "LINKWARDEN_MCP_DELETE_SCOPES": "${user_config.delete_scopes}"
+      }
+    }
+  },
+  "user_config": {
+    "url": {
+      "type": "string",
+      "title": "Linkwarden URL",
+      "description": "Linkwarden instance base URL (e.g. https://links.example.com).",
+      "required": true
+    },
+    "token": {
+      "type": "string",
+      "title": "Linkwarden API token",
+      "description": "Bearer API token from Linkwarden settings.",
+      "sensitive": true,
+      "required": true
+    },
+    "write_scopes": {
+      "type": "string",
+      "title": "Write scopes",
+      "description": "Comma-separated domains for create/update: links,collections,tags,raw. Recommended: links,collections. Leave empty for read-only.",
+      "required": false,
+      "default": ""
+    },
+    "delete_scopes": {
+      "type": "string",
+      "title": "Delete scopes",
+      "description": "Comma-separated domains for delete only. Never implied by write scopes. Leave empty for no deletes.",
+      "required": false,
+      "default": ""
+    }
+  },
+  "compatibility": {
+    "platforms": ["darwin", "win32", "linux"],
+    "runtimes": {
+      "python": ">=3.10,<4.0"
+    }
+  }
+}

@@ -5,7 +5,7 @@ from __future__ import annotations
 import httpx
 import pytest
 import respx
-from conftest import BASE_URL
+from conftest import BASE_URL, FULL_WRITE_POLICY
 
 from linkwarden_mcp.client import LinkwardenClient
 from linkwarden_mcp.deletes import delete_links, delete_tags, merge_tags
@@ -16,7 +16,7 @@ from linkwarden_mcp.resolve import NameResolver
 @pytest.mark.asyncio
 @respx.mock
 async def test_delete_links_bulk_cap(auth_env: None) -> None:
-    client = LinkwardenClient(BASE_URL, "token")
+    client = LinkwardenClient(BASE_URL, "token", policy=FULL_WRITE_POLICY)
     with pytest.raises(BulkCapExceeded):
         await delete_links(client, link_ids=list(range(30)), max_bulk=25)
     await client.aclose()
@@ -25,7 +25,7 @@ async def test_delete_links_bulk_cap(auth_env: None) -> None:
 @pytest.mark.asyncio
 @respx.mock
 async def test_delete_tags_bulk_cap(auth_env: None) -> None:
-    client = LinkwardenClient(BASE_URL, "token")
+    client = LinkwardenClient(BASE_URL, "token", policy=FULL_WRITE_POLICY)
     with pytest.raises(BulkCapExceeded):
         await delete_tags(client, NameResolver(client), tag_ids=list(range(30)), max_bulk=25)
     await client.aclose()
@@ -48,7 +48,7 @@ async def test_merge_tags_uses_put(auth_env: None) -> None:
     route = respx.put(f"{BASE_URL}/api/v1/tags/merge").mock(
         return_value=httpx.Response(200, json={"id": 99})
     )
-    client = LinkwardenClient(BASE_URL, "token")
+    client = LinkwardenClient(BASE_URL, "token", policy=FULL_WRITE_POLICY)
     out = await merge_tags(
         client,
         NameResolver(client),
@@ -73,7 +73,7 @@ async def test_merge_tags_duplicate_name_warning(auth_env: None) -> None:
     respx.put(f"{BASE_URL}/api/v1/tags/merge").mock(
         return_value=httpx.Response(200, json={"id": 1})
     )
-    client = LinkwardenClient(BASE_URL, "token")
+    client = LinkwardenClient(BASE_URL, "token", policy=FULL_WRITE_POLICY)
     out = await merge_tags(
         client,
         NameResolver(client),
