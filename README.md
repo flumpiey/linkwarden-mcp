@@ -158,13 +158,21 @@ Restart Cursor after saving. Confirm `linkwarden` under MCP settings.
 <details>
 <summary><strong>Claude Desktop</strong></summary>
 
-**Desktop Extension (`.mcpb`):** download [`mcpb.mcpb`](https://github.com/flumpiey/linkwarden-mcp/releases/latest/download/mcpb.mcpb) from [GitHub Releases](https://github.com/flumpiey/linkwarden-mcp/releases), or build:
+**Desktop Extension (`.mcpb`):** download [`mcpb.mcpb`](https://github.com/flumpiey/linkwarden-mcp/releases/latest/download/mcpb.mcpb) from [GitHub Releases](https://github.com/flumpiey/linkwarden-mcp/releases). Use v0.1.1 or later (manifest 0.4; needs [`uv`](https://docs.astral.sh/uv/) on PATH, not a separate Python install).
+
+1. Open Claude Desktop → **Settings → Extensions**.
+2. Open **Advanced settings** → **Install Extension…**
+3. Select `mcpb.mcpb`. Review permissions, enter **Linkwarden API URL** and **Linkwarden API key**, then click **Install**.
+4. Leave **Write scopes** and **Delete scopes** empty for read-only.
+5. Restart Claude Desktop if tools do not appear.
+
+Build your own bundle from a clone:
 
 ```bash
 npx @anthropic-ai/mcpb pack mcpb
 ```
 
-Install via **Settings → Extensions → Advanced settings → Install Extension** (do **not** drag into chat). Enter **Linkwarden API URL** and **API key** when prompted; leave write/delete scopes empty for read-only. Requires [`uv`](https://docs.astral.sh/uv/) on PATH only — no separate Python install (`uvx` pulls Python automatically).
+On Windows, double-click often does nothing and dragging the file into chat attaches it to the conversation instead of installing it. Use **Install Extension…** in Settings.
 
 **Manual `claude_desktop_config.json` fallback:** edit the Claude Desktop config, then restart the app.
 
@@ -204,12 +212,6 @@ Local clone:
   }
 }
 ```
-
-**Windows troubleshooting**
-
-- Double-click often fails until `.mcpb` is associated with `Claude.exe`.
-- Drag onto chat attaches the file; use the Extensions settings installer instead.
-- If Install still no-ops on Claude Desktop 1.12603.1+, use `mcp.json` / `claude_desktop_config.json` or update Claude.
 
 </details>
 
