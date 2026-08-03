@@ -23,8 +23,13 @@ def load_mcp_env(server_name: str = "test-linkwarden") -> dict[str, str]:
     env: dict[str, str] = {}
     for key, value in re.findall(r'"([A-Z_]+)"\s*:\s*"([^"]*)"', block.group("body")):
         env[key] = value
-    if "LINKWARDEN_URL" not in env or "LINKWARDEN_TOKEN" not in env:
-        raise RuntimeError("LINKWARDEN_URL and LINKWARDEN_TOKEN required in test-linkwarden env")
+    has_api = "LINKWARDEN_API_URL" in env and "LINKWARDEN_API_KEY" in env
+    has_legacy = "LINKWARDEN_URL" in env and "LINKWARDEN_TOKEN" in env
+    if not has_api and not has_legacy:
+        raise RuntimeError(
+            "LINKWARDEN_API_URL and LINKWARDEN_API_KEY required in test-linkwarden env "
+            "(legacy LINKWARDEN_URL / LINKWARDEN_TOKEN also accepted)"
+        )
     return env
 
 

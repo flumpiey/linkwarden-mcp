@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import base64
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import Any
 
 from fastmcp import FastMCP
+from mcp.types import Icon
 
 from linkwarden_mcp import deletes, reads, workflows, writes
 from linkwarden_mcp.config import Settings, get_client, get_policy, get_settings, reset_state
@@ -20,6 +23,27 @@ from linkwarden_mcp.errors import (
 from linkwarden_mcp.resolve import NameResolver
 from linkwarden_mcp.scopes import DOMAIN_SCOPES, ScopeConfigError, WritePolicy, WritesDeniedError
 from linkwarden_mcp.task_tools import require_delete_scope, require_write_scopes
+
+_ICON_PATH = Path(__file__).resolve().parent / "assets" / "icon.png"
+_ICON_HTTPS = (
+    "https://raw.githubusercontent.com/flumpiey/linkwarden-mcp/main/docs/icon-512.png"
+)
+
+
+def server_icons() -> list[Icon]:
+    """Icons for initialize serverInfo (data URI + public HTTPS fallback)."""
+    icons: list[Icon] = []
+    if _ICON_PATH.is_file():
+        b64 = base64.standard_b64encode(_ICON_PATH.read_bytes()).decode("ascii")
+        icons.append(
+            Icon(
+                src=f"data:image/png;base64,{b64}",
+                mimeType="image/png",
+                sizes=["512x512"],
+            )
+        )
+    icons.append(Icon(src=_ICON_HTTPS, mimeType="image/png", sizes=["512x512"]))
+    return icons
 
 
 @asynccontextmanager
@@ -36,7 +60,12 @@ async def _server_lifespan(_server: FastMCP) -> AsyncIterator[None]:
         reset_state()
 
 
-mcp = FastMCP("linkwarden-mcp", lifespan=_server_lifespan)
+mcp = FastMCP(
+    "linkwarden-mcp",
+    website_url="https://linkwarden.app/",
+    icons=server_icons(),
+    lifespan=_server_lifespan,
+)
 
 READ_ANNOTATIONS = {"readOnlyHint": True}
 WRITE_ANNOTATIONS = {"readOnlyHint": False, "destructiveHint": False}

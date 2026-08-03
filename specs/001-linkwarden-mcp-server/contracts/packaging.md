@@ -65,7 +65,7 @@ Pre-release version bump must update: `pyproject.toml`, `server.json`, `mcpb/man
 dev = ["pytest", "pytest-asyncio", "respx", "ruff", "hatchling", "hatch"]
 ```
 
-All CI tests run mocked (`respx`); no integration marker or live Linkwarden env vars.
+CI default: mocked (`respx`) via `addopts = "-m 'not integration'"`. Optional live suite uses `TEST_LINKWARDEN_API_URL` / `TEST_LINKWARDEN_API_KEY` (`pytest -m integration`).
 
 ## uvx consumption
 

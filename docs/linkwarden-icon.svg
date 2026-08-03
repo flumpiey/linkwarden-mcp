@@ -1,0 +1,14 @@
+<svg height="32" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Linkwarden">
+  <defs>
+    <linearGradient id="tealGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#2DD4BF"/>
+      <stop offset="100%" style="stop-color:#0F766E"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="200" height="200" fill="url(#tealGradient)" rx="40" ry="40"/>
+  <!-- bookmark -->
+  <path d="M70 45 h60 a8 8 0 0 1 8 8 v102 l-38 -22 -38 22 V53 a8 8 0 0 1 8 -8 z" fill="white"/>
+  <!-- link accent -->
+  <circle cx="100" cy="88" r="14" fill="none" stroke="#0F766E" stroke-width="8"/>
+  <circle cx="122" cy="88" r="14" fill="none" stroke="#0F766E" stroke-width="8"/>
+</svg>

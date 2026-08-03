@@ -2,7 +2,7 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.flumpiey/linkwarden-mcp",
   "title": "Linkwarden MCP",
-  "description": "MCP server for Linkwarden bookmarks: read-first search and preserved content, with opt-in scoped write and delete tools.",
+  "description": "MCP server for Linkwarden bookmarks: read-first search and preserved content, with opt-in write, delete, and collection-delete tools.",
   "repository": {
     "url": "https://github.com/flumpiey/linkwarden-mcp",
     "source": "github"
@@ -21,13 +21,13 @@
       },
       "environmentVariables": [
         {
-          "name": "LINKWARDEN_URL",
-          "description": "Linkwarden instance base URL",
+          "name": "LINKWARDEN_API_URL",
+          "description": "Linkwarden instance base URL (no /api/v1 suffix)",
           "isRequired": true
         },
         {
-          "name": "LINKWARDEN_TOKEN",
-          "description": "Bearer API token from Linkwarden settings",
+          "name": "LINKWARDEN_API_KEY",
+          "description": "Access token from Linkwarden settings (Authorization: Bearer)",
           "isRequired": true,
           "isSecret": true
         },
@@ -39,17 +39,18 @@
         },
         {
           "name": "LINKWARDEN_MCP_DELETE_SCOPES",
-          "description": "Comma-separated delete scopes (never implied by write). Empty = no deletes.",
+          "description": "Comma-separated delete scopes (never implied by write scopes)",
           "isRequired": false,
           "default": ""
-        },
-        {
-          "name": "LINKWARDEN_MAX_BULK",
-          "description": "Max records per bulk op (default 25)",
-          "isRequired": false,
-          "default": "25"
         }
       ]
+    }
+  ],
+  "icons": [
+    {
+      "src": "https://raw.githubusercontent.com/flumpiey/linkwarden-mcp/main/docs/icon-512.png",
+      "mimeType": "image/png",
+      "sizes": ["512x512"]
     }
   ]
 }

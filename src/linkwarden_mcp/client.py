@@ -145,7 +145,7 @@ class LinkwardenClient:
             )
         except httpx.RequestError as exc:
             raise ApiError(
-                f"Linkwarden unreachable at {self.base_url}. Check LINKWARDEN_URL. Detail: {exc}"
+                f"Linkwarden unreachable at {self.base_url}. Check LINKWARDEN_API_URL. Detail: {exc}"
             ) from exc
         if response.status_code >= 400:
             raise ApiError(extract_api_message(response), status=response.status_code)

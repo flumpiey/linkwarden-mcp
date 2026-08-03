@@ -22,8 +22,8 @@ def base_url() -> str:
 
 @pytest.fixture
 def auth_env(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("LINKWARDEN_URL", BASE_URL)
-    monkeypatch.setenv("LINKWARDEN_TOKEN", "test-token")
+    monkeypatch.setenv("LINKWARDEN_API_URL", BASE_URL)
+    monkeypatch.setenv("LINKWARDEN_API_KEY", "test-token")
 
 
 @pytest.fixture(autouse=True)

@@ -71,6 +71,10 @@ include = [
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+markers = [
+  "integration: live Linkwarden sandbox, requires TEST_LINKWARDEN_API_URL env var",
+]
+addopts = "-m 'not integration'"
 
 [tool.ruff]
 line-length = 100

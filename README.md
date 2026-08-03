@@ -43,25 +43,31 @@ Transport is **stdio**. No HTTP server. No global install required if you use [`
 
 ## Branding / icons
 
-- **stdio hosts (Cursor, Claude Desktop via `mcp.json`):** the server advertises Linkwarden branding in MCP `serverInfo.icons` (embedded PNG data URI, plus a GitHub raw HTTPS fallback).
-- **Cursor plugin:** [`.cursor-plugin/plugin.json`](.cursor-plugin/plugin.json) uses [`docs/linkwarden-icon.svg`](docs/linkwarden-icon.svg).
-- **Claude Desktop Extension:** pack [`mcpb/`](mcpb/) (includes `icon.png`). See Installation → Claude Desktop below.
-- **Claude.ai remote connectors:** Claude.ai ignores `serverInfo.icons` and uses the **root-domain favicon** of the connector URL. If you host a remote MCP later, serve [`docs/favicon.ico`](docs/favicon.ico) at the registrable domain root (e.g. `https://acme.com/favicon.ico` for `https://mcp.acme.com/...`).
+Four surfaces (keep them in sync when the mark changes):
+
+1. **stdio hosts (Cursor, Claude Desktop via `mcp.json`):** `serverInfo.icons` from [`server_icons()`](src/linkwarden_mcp/server.py) — embedded data URI from [`src/linkwarden_mcp/assets/icon.png`](src/linkwarden_mcp/assets/icon.png), plus HTTPS fallback [`docs/icon-512.png`](docs/icon-512.png) (`https://raw.githubusercontent.com/flumpiey/linkwarden-mcp/main/docs/icon-512.png`). `website_url` is `https://linkwarden.app/`.
+2. **Cursor plugin:** [`.cursor-plugin/plugin.json`](.cursor-plugin/plugin.json) `logo` → [`docs/linkwarden-icon.svg`](docs/linkwarden-icon.svg).
+3. **Claude Desktop Extension:** [`mcpb/icon.png`](mcpb/icon.png) (packed with `npx @anthropic-ai/mcpb pack mcpb`).
+4. **Claude.ai remote connectors:** Claude.ai ignores `serverInfo.icons` and uses the **root-domain favicon** of the connector URL. If you host a remote MCP later, serve [`docs/favicon.ico`](docs/favicon.ico) at the registrable domain root (e.g. `https://acme.com/favicon.ico` for `https://mcp.acme.com/...`).
+
+[`server.json`](server.json) registry metadata also points its `icons[0].src` at the same raw `docs/icon-512.png` URL.
 
 ## Requirements
 
 - Python ≥ 3.10 (pulled in automatically by `uvx`)
 - [uv](https://docs.astral.sh/uv/) (provides `uvx`)
-- A reachable Linkwarden instance: `LINKWARDEN_URL` + `LINKWARDEN_TOKEN`
+- A reachable Linkwarden instance: `LINKWARDEN_API_URL` + `LINKWARDEN_API_KEY`
 
 ### Access token
 
 1. Sign in to your Linkwarden instance (self-hosted or Cloud).
 2. Open **Settings → Access Tokens** (or go to `/settings/access-tokens`).
-3. Create a **New Access Token**, give it a name, and copy the value into `LINKWARDEN_TOKEN`.
-4. Set `LINKWARDEN_URL` to your instance base URL (no `/api/v1` suffix), e.g. `https://links.example.com` or local Docker `http://127.0.0.1:3000`.
+3. Create a **New Access Token**, give it a name, and copy the value into `LINKWARDEN_API_KEY`.
+4. Set `LINKWARDEN_API_URL` to your instance base URL (usually without `/api/v1`; include `/api/v1` only if your deployment requires it), e.g. `https://links.example.com` or local Docker `http://127.0.0.1:3000`.
 
 `linkwarden-mcp` sends the token as `Authorization: Bearer …`. API overview: [API Introduction](https://docs.linkwarden.app/api/api-introduction).
+
+Copy [`.env.example`](.env.example) to `.env` for local runs — **never commit `.env`**. Prefer the Cursor plugin **Configure** UI for credentials, or a secret manager in production.
 
 ## Quick start
 
@@ -71,7 +77,7 @@ Run the [PyPI](https://pypi.org/project/linkwarden-mcp/) package with [`uvx`](ht
 uvx linkwarden-mcp
 ```
 
-Paste a client config below, set `LINKWARDEN_URL` / `LINKWARDEN_TOKEN`, restart the host, then ask: *“Find my unread bookmarks about Python”* or *“What's in my Dev collection?”*
+Paste a client config below, set `LINKWARDEN_API_URL` / `LINKWARDEN_API_KEY`, restart the host, then ask: *“Find my unread bookmarks about Python”* or *“What's in my Dev collection?”*
 
 From a git clone (dev): `uvx --from git+https://github.com/flumpiey/linkwarden-mcp linkwarden-mcp` or `uv run --directory /path/to/linkwarden-mcp linkwarden-mcp`.
 
@@ -82,16 +88,25 @@ Configs below pull [`linkwarden-mcp`](https://pypi.org/project/linkwarden-mcp/) 
 <details>
 <summary><strong>Cursor</strong></summary>
 
-**Plugin (Configure UI for URL, token, and scopes):** this repo is a Cursor plugin via [`.cursor-plugin/plugin.json`](.cursor-plugin/plugin.json) + root [`mcp.json`](mcp.json).
+**Plugin (Configure UI for URL, key, and scopes):** this repo is a Cursor plugin via [`.cursor-plugin/plugin.json`](.cursor-plugin/plugin.json) + root [`mcp.json`](mcp.json).
 
 1. Symlink or copy the clone to `~/.cursor/plugins/local/linkwarden-mcp` (Windows: `%USERPROFILE%\.cursor\plugins\local\linkwarden-mcp`).
+   - **macOS / Linux:** `ln -s /path/to/linkwarden-mcp ~/.cursor/plugins/local/linkwarden-mcp`
+   - **Windows:** Cursor does **not** follow symlinks for local plugins. Use a junction or copy instead:
+     ```bat
+     mklink /J "%USERPROFILE%\.cursor\plugins\local\linkwarden-mcp" "E:\Development\linkwarden-mcp"
+     ```
+     or:
+     ```bat
+     robocopy "E:\Development\linkwarden-mcp" "%USERPROFILE%\.cursor\plugins\local\linkwarden-mcp" /E
+     ```
 2. Reload the window.
-3. Open **Plugins → Configure** on `linkwarden-mcp`. Set **Linkwarden URL** and **Linkwarden API token**. Leave **Write scopes** / **Delete scopes** empty for read-only, or paste a CSV such as `links,collections`.
+3. Open **Plugins → Configure** on `linkwarden-mcp`. Set **Linkwarden API URL** and **Linkwarden API key**. Leave **Write scopes** / **Delete scopes** empty for read-only, or paste a CSV such as `links,collections`.
 4. Confirm the `linkwarden` MCP server is enabled under Customize / MCP.
 
 Marketplace listing is a separate submit at [cursor.com/marketplace/publish](https://cursor.com/marketplace/publish).
 
-**Manual `mcp.json`:** project [`.cursor/mcp.json`](.cursor/mcp.json) or user-wide `~/.cursor/mcp.json`.
+**Manual `mcp.json`:** project [`.cursor/mcp.json`](.cursor/mcp.json) or user-wide `~/.cursor/mcp.json`. Root [`mcp.json`](mcp.json) is plugin wiring with `${…}` placeholders only — never commit real secrets there.
 
 From PyPI:
 
@@ -103,8 +118,8 @@ From PyPI:
       "command": "uvx",
       "args": ["linkwarden-mcp"],
       "env": {
-        "LINKWARDEN_URL": "https://links.example.com",
-        "LINKWARDEN_TOKEN": "your-token"
+        "LINKWARDEN_API_URL": "https://links.example.com",
+        "LINKWARDEN_API_KEY": "your-token"
       }
     }
   }
@@ -121,8 +136,8 @@ Local editable (dev):
       "command": "uv",
       "args": ["run", "--directory", "/path/to/linkwarden-mcp", "linkwarden-mcp"],
       "env": {
-        "LINKWARDEN_URL": "https://links.example.com",
-        "LINKWARDEN_TOKEN": "your-token"
+        "LINKWARDEN_API_URL": "https://links.example.com",
+        "LINKWARDEN_API_KEY": "your-token"
       }
     }
   }
@@ -146,10 +161,11 @@ Restart Cursor after saving. Confirm `linkwarden` under MCP settings.
 **Desktop Extension (`.mcpb`, shows branded icon):** from a clone:
 
 ```bash
+cd E:\Development\linkwarden-mcp
 npx @anthropic-ai/mcpb pack mcpb
 ```
 
-Install the resulting `.mcpb` (double-click, drag onto Claude Desktop, or Settings → Extensions → Install Extension). Enter URL and token when prompted; leave write/delete scopes empty for read-only. Requires [`uv`](https://docs.astral.sh/uv/) on PATH (`mcp_config` runs `uvx`).
+Install the resulting `.mcpb` (double-click, drag onto Claude Desktop, or Settings → Extensions → Install Extension). Enter **Linkwarden API URL** and **API key** when prompted; leave write/delete scopes empty for read-only. Requires [`uv`](https://docs.astral.sh/uv/) on PATH (`mcp_config` runs `uvx`).
 
 **Manual `mcp.json` config:** edit the Claude Desktop config, then restart the app.
 
@@ -165,8 +181,8 @@ Install the resulting `.mcpb` (double-click, drag onto Claude Desktop, or Settin
       "command": "uvx",
       "args": ["linkwarden-mcp"],
       "env": {
-        "LINKWARDEN_URL": "https://links.example.com",
-        "LINKWARDEN_TOKEN": "your-token"
+        "LINKWARDEN_API_URL": "https://links.example.com",
+        "LINKWARDEN_API_KEY": "your-token"
       }
     }
   }
@@ -182,8 +198,8 @@ Local clone:
       "command": "uv",
       "args": ["run", "--directory", "/path/to/linkwarden-mcp", "linkwarden-mcp"],
       "env": {
-        "LINKWARDEN_URL": "https://links.example.com",
-        "LINKWARDEN_TOKEN": "your-token"
+        "LINKWARDEN_API_URL": "https://links.example.com",
+        "LINKWARDEN_API_KEY": "your-token"
       }
     }
   }
@@ -198,7 +214,7 @@ Local clone:
 Add via CLI:
 
 ```bash
-claude mcp add linkwarden --env LINKWARDEN_URL=https://links.example.com --env LINKWARDEN_TOKEN=your-token -- uvx linkwarden-mcp
+claude mcp add linkwarden --env LINKWARDEN_API_URL=https://links.example.com --env LINKWARDEN_API_KEY=your-token -- uvx linkwarden-mcp
 ```
 
 Or edit `~/.claude.json` / project MCP config:
@@ -210,8 +226,8 @@ Or edit `~/.claude.json` / project MCP config:
       "command": "uvx",
       "args": ["linkwarden-mcp"],
       "env": {
-        "LINKWARDEN_URL": "https://links.example.com",
-        "LINKWARDEN_TOKEN": "your-token"
+        "LINKWARDEN_API_URL": "https://links.example.com",
+        "LINKWARDEN_API_KEY": "your-token"
       }
     }
   }
@@ -233,8 +249,8 @@ Create [`.vscode/mcp.json`](.vscode/mcp.json) in the project root:
       "command": "uvx",
       "args": ["linkwarden-mcp"],
       "env": {
-        "LINKWARDEN_URL": "https://links.example.com",
-        "LINKWARDEN_TOKEN": "your-token"
+        "LINKWARDEN_API_URL": "https://links.example.com",
+        "LINKWARDEN_API_KEY": "your-token"
       }
     }
   }
@@ -251,8 +267,8 @@ Local editable:
       "command": "uv",
       "args": ["run", "--directory", "/path/to/linkwarden-mcp", "linkwarden-mcp"],
       "env": {
-        "LINKWARDEN_URL": "https://links.example.com",
-        "LINKWARDEN_TOKEN": "your-token"
+        "LINKWARDEN_API_URL": "https://links.example.com",
+        "LINKWARDEN_API_KEY": "your-token"
       }
     }
   }
@@ -275,8 +291,8 @@ Edit `~/.codeium/windsurf/mcp_config.json` (macOS/Linux) or the Windsurf MCP set
       "command": "uvx",
       "args": ["linkwarden-mcp"],
       "env": {
-        "LINKWARDEN_URL": "https://links.example.com",
-        "LINKWARDEN_TOKEN": "your-token"
+        "LINKWARDEN_API_URL": "https://links.example.com",
+        "LINKWARDEN_API_KEY": "your-token"
       }
     }
   }
@@ -299,8 +315,8 @@ Add under `context_servers` in Zed `settings.json` (Agent Panel → settings als
       "command": "uvx",
       "args": ["linkwarden-mcp"],
       "env": {
-        "LINKWARDEN_URL": "https://links.example.com",
-        "LINKWARDEN_TOKEN": "your-token"
+        "LINKWARDEN_API_URL": "https://links.example.com",
+        "LINKWARDEN_API_KEY": "your-token"
       }
     }
   }
@@ -321,8 +337,8 @@ Edit the Cline MCP settings file (`cline_mcp_settings.json` via the Cline MCP UI
       "command": "uvx",
       "args": ["linkwarden-mcp"],
       "env": {
-        "LINKWARDEN_URL": "https://links.example.com",
-        "LINKWARDEN_TOKEN": "your-token"
+        "LINKWARDEN_API_URL": "https://links.example.com",
+        "LINKWARDEN_API_KEY": "your-token"
       }
     }
   }
@@ -343,8 +359,8 @@ mcpServers:
     args:
       - linkwarden-mcp
     env:
-      LINKWARDEN_URL: https://links.example.com
-      LINKWARDEN_TOKEN: your-token
+      LINKWARDEN_API_URL: https://links.example.com
+      LINKWARDEN_API_KEY: your-token
 ```
 
 </details>
@@ -358,7 +374,7 @@ Any host that can spawn a stdio MCP server:
 |-------|-------|
 | Command | `uvx` |
 | Args | `linkwarden-mcp` |
-| Env | `LINKWARDEN_URL`, `LINKWARDEN_TOKEN` (+ optional write scopes) |
+| Env | `LINKWARDEN_API_URL`, `LINKWARDEN_API_KEY` (+ optional write scopes) |
 
 ```bash
 uvx linkwarden-mcp
@@ -374,11 +390,13 @@ Dev from a clone: `uv run --directory /path/to/linkwarden-mcp linkwarden-mcp`.
 
 | Variable | Required | Notes |
 |----------|----------|-------|
-| `LINKWARDEN_URL` | yes | Instance base URL (no `/api/v1` suffix) |
-| `LINKWARDEN_TOKEN` | yes | Sent as `Authorization: Bearer`; never logged |
+| `LINKWARDEN_API_URL` | yes | Base URL (include `/api/v1` only if required; typical: `https://links.example.com`) |
+| `LINKWARDEN_API_KEY` | yes | Access token from Settings → Access Tokens; sent as `Authorization: Bearer`; never logged |
 | `LINKWARDEN_MCP_WRITE_SCOPES` | no | Comma-separated domains for create/update. Empty = no writes. |
 | `LINKWARDEN_MCP_DELETE_SCOPES` | no | Comma-separated domains for delete only. Never implied by WRITE_SCOPES. |
 | `LINKWARDEN_MAX_BULK` | no | Max records per bulk op (default `25`) |
+| `TEST_LINKWARDEN_API_URL` | integration only | Live sandbox URL for `pytest -m integration` |
+| `TEST_LINKWARDEN_API_KEY` | integration only | Live sandbox token for `pytest -m integration` |
 
 Valid scopes: `links`, `collections`, `tags`, `raw`. No wildcards (`*`, `all`). `raw` expands effective scopes to all domain scopes (escape hatch).
 
@@ -393,7 +411,9 @@ Default with no scopes: **18 tools**. All three domain scopes in WRITE and DELET
 
 Legacy `LINKWARDEN_MCP_ALLOW_WRITES` / `ALLOW_WRITES` / `LINKWARDEN_MCP_WRITES` hard-fail if set. Use the scoped vars instead.
 
-See [`.env.example`](.env.example). Prefer a secret manager for the API token in production configs.
+MCP host env (`.cursor/mcp.json` or Cursor plugin Configure) **must match** process env / `.env` or scope behavior drifts.
+
+See [`.env.example`](.env.example). **Never commit `.env`.** Prefer Cursor plugin Configure UI or a secret manager in production.
 
 ## Write scopes and task tools
 
@@ -486,7 +506,7 @@ GitHub Actions matrix: Python 3.10 and 3.12.
 
 ## Caveats
 
-- One process ↔ one `LINKWARDEN_URL`. Multi-instance routing is out of scope.
+- One process ↔ one `LINKWARDEN_API_URL`. Multi-instance routing is out of scope.
 - Multi-user / team disambiguation on a shared instance is **unverified**. Do not claim multi-tenant support until validated against a live shared library.
 - Collection/tag suggestions are heuristic and library-local; they do not invent new tag names.
 - Bulk mutating workflows default to `dry_run=true`; set `dry_run=false` only after you review the plan.
