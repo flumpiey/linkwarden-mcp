@@ -2,7 +2,7 @@
   "manifest_version": "0.4",
   "name": "linkwarden-mcp",
   "display_name": "Linkwarden MCP",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "MCP server for Linkwarden bookmarks: read-first search and preserved content, with opt-in write, delete, and collection-delete tools. Requires uv on PATH (uvx pulls Python automatically).",
   "author": {
     "name": "flumpiey",

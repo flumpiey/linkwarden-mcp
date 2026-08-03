@@ -2,19 +2,19 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.flumpiey/linkwarden-mcp",
   "title": "Linkwarden MCP",
-  "description": "MCP server for Linkwarden bookmarks: read-first search and preserved content, with opt-in write, delete, and collection-delete tools.",
+  "description": "Read-first Linkwarden bookmarks MCP with opt-in write, delete, and collection tools.",
   "repository": {
     "url": "https://github.com/flumpiey/linkwarden-mcp",
     "source": "github"
   },
-  "version": "0.1.1",
+  "version": "0.1.2",
   "websiteUrl": "https://github.com/flumpiey/linkwarden-mcp",
   "packages": [
     {
       "registryType": "pypi",
       "registryBaseUrl": "https://pypi.org",
       "identifier": "linkwarden-mcp",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "runtimeHint": "uvx",
       "transport": {
         "type": "stdio"

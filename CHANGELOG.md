@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.1.2] - 2026-08-03
+
+### Fixed
+
+- MCP Registry: shorten `server.json` description to satisfy ≤100 character limit
+
 ## [0.1.1] - 2026-08-03
 
 ### Fixed
