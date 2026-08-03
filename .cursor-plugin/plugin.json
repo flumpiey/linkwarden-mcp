@@ -1,0 +1,38 @@
+{
+    "name": "linkwarden-mcp",
+    "version": "0.1.0",
+    "description": "MCP server for Linkwarden: read-first bookmark and collection access with opt-in scoped writes.",
+    "logo": "docs/linkwarden-icon.svg",
+    "variables": {
+        "type": "object",
+        "properties": {
+            "LINKWARDEN_API_URL": {
+                "type": "string",
+                "title": "Linkwarden API URL",
+                "description": "Instance API base (e.g. http://127.0.0.1:3000/api/v1).",
+                "default": "http://127.0.0.1:3000/api/v1"
+            },
+            "LINKWARDEN_API_KEY": {
+                "type": "string",
+                "title": "Linkwarden API key",
+                "description": "Access token from Linkwarden settings."
+            },
+            "LINKWARDEN_MCP_WRITE_SCOPES": {
+                "type": "string",
+                "title": "Write scopes",
+                "description": "Comma-separated domains for create/update. Empty = read-only.",
+                "default": ""
+            },
+            "LINKWARDEN_MCP_DELETE_SCOPES": {
+                "type": "string",
+                "title": "Delete scopes",
+                "description": "Comma-separated domains for delete. Empty = no deletes.",
+                "default": ""
+            }
+        },
+        "required": [
+            "LINKWARDEN_API_URL",
+            "LINKWARDEN_API_KEY"
+        ]
+    }
+}
