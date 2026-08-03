@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import subprocess
+import sys
 import tarfile
 from pathlib import Path
 
@@ -30,8 +31,9 @@ def _archive_relative(name: str) -> str:
 
 @pytest.mark.parametrize("target", ["sdist"])
 def test_sdist_excludes_dev_paths(target: str) -> None:
+    # Avoid `uv run` — on Windows it rewrites Scripts/*.exe and fails if MCP holds them.
     subprocess.run(
-        ["uv", "run", "hatch", "build", f"--target={target}"],
+        [sys.executable, "-m", "hatch", "build", f"--target={target}"],
         cwd=ROOT,
         check=True,
         capture_output=True,

@@ -1,8 +1,9 @@
 {
-  "manifest_version": "0.3",
+  "manifest_version": "0.4",
   "name": "linkwarden-mcp",
-  "version": "0.1.0",
-  "description": "MCP server for Linkwarden bookmarks: read-first search and preserved content, with opt-in write, delete, and collection-delete tools.",
+  "display_name": "Linkwarden MCP",
+  "version": "0.1.1",
+  "description": "MCP server for Linkwarden bookmarks: read-first search and preserved content, with opt-in write, delete, and collection-delete tools. Requires uv on PATH (uvx pulls Python automatically).",
   "author": {
     "name": "flumpiey",
     "url": "https://github.com/flumpiey/linkwarden-mcp"
@@ -12,13 +13,11 @@
   "support": "https://github.com/flumpiey/linkwarden-mcp/issues",
   "icon": "icon.png",
   "server": {
-    "type": "python",
+    "type": "uv",
     "entry_point": "server/main.py",
     "mcp_config": {
       "command": "uvx",
-      "args": [
-        "linkwarden-mcp"
-      ],
+      "args": ["linkwarden-mcp"],
       "env": {
         "LINKWARDEN_API_URL": "${user_config.api_url}",
         "LINKWARDEN_API_KEY": "${user_config.api_key}",
@@ -58,9 +57,6 @@
     }
   },
   "compatibility": {
-    "platforms": ["darwin", "win32", "linux"],
-    "runtimes": {
-      "python": ">=3.10,<4.0"
-    }
+    "platforms": ["darwin", "win32", "linux"]
   }
 }

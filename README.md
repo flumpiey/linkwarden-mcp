@@ -158,16 +158,15 @@ Restart Cursor after saving. Confirm `linkwarden` under MCP settings.
 <details>
 <summary><strong>Claude Desktop</strong></summary>
 
-**Desktop Extension (`.mcpb`, shows branded icon):** from a clone:
+**Desktop Extension (`.mcpb`):** download [`mcpb.mcpb`](https://github.com/flumpiey/linkwarden-mcp/releases/latest/download/mcpb.mcpb) from [GitHub Releases](https://github.com/flumpiey/linkwarden-mcp/releases), or build:
 
 ```bash
-cd E:\Development\linkwarden-mcp
 npx @anthropic-ai/mcpb pack mcpb
 ```
 
-Install the resulting `.mcpb` (double-click, drag onto Claude Desktop, or Settings → Extensions → Install Extension). Enter **Linkwarden API URL** and **API key** when prompted; leave write/delete scopes empty for read-only. Requires [`uv`](https://docs.astral.sh/uv/) on PATH (`mcp_config` runs `uvx`).
+Install via **Settings → Extensions → Advanced settings → Install Extension** (do **not** drag into chat). Enter **Linkwarden API URL** and **API key** when prompted; leave write/delete scopes empty for read-only. Requires [`uv`](https://docs.astral.sh/uv/) on PATH only — no separate Python install (`uvx` pulls Python automatically).
 
-**Manual `mcp.json` config:** edit the Claude Desktop config, then restart the app.
+**Manual `claude_desktop_config.json` fallback:** edit the Claude Desktop config, then restart the app.
 
 | OS | Path |
 |----|------|
@@ -205,6 +204,12 @@ Local clone:
   }
 }
 ```
+
+**Windows troubleshooting**
+
+- Double-click often fails until `.mcpb` is associated with `Claude.exe`.
+- Drag onto chat attaches the file; use the Extensions settings installer instead.
+- If Install still no-ops on Claude Desktop 1.12603.1+, use `mcp.json` / `claude_desktop_config.json` or update Claude.
 
 </details>
 

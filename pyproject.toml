@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "linkwarden-mcp"
-version = "0.1.0"
+version = "0.1.1"
 description = "MCP server for Linkwarden bookmarks: read-first search and preserved content, with opt-in write, delete, and collection-delete tools."
 readme = "README.md"
 license = "MIT"
@@ -67,6 +67,9 @@ only-include = [
   "README.md",
   "LICENSE",
   "pyproject.toml",
+]
+exclude = [
+  "mcpb/",
 ]
 
 [tool.pytest.ini_options]
