@@ -37,17 +37,21 @@ class Settings:
     @classmethod
     def from_env(cls, environ: dict[str, str] | None = None) -> Settings:
         env = dict(os.environ if environ is None else environ)
+        url = env.get("LINKWARDEN_API_URL", "").strip() or env.get("LINKWARDEN_URL", "").strip()
+        token = (
+            env.get("LINKWARDEN_API_KEY", "").strip() or env.get("LINKWARDEN_TOKEN", "").strip()
+        )
         return cls(
-            url=env.get("LINKWARDEN_URL", "").strip(),
-            token=env.get("LINKWARDEN_TOKEN", "").strip(),
+            url=url,
+            token=token,
             max_bulk=_parse_bulk_cap(env),
         )
 
     def validate_runtime(self) -> None:
         if not self.url:
-            raise ConfigError("LINKWARDEN_URL is required")
+            raise ConfigError("LINKWARDEN_API_URL is required")
         if not self.token:
-            raise ConfigError("LINKWARDEN_TOKEN is required")
+            raise ConfigError("LINKWARDEN_API_KEY is required")
 
 
 _settings: Settings | None = None

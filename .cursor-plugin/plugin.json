@@ -1,38 +1,42 @@
 {
-    "name": "linkwarden-mcp",
-    "version": "0.1.0",
-    "description": "MCP server for Linkwarden: read-first bookmark and collection access with opt-in scoped writes.",
-    "logo": "docs/linkwarden-icon.svg",
-    "variables": {
-        "type": "object",
-        "properties": {
-            "LINKWARDEN_URL": {
-                "type": "string",
-                "title": "Linkwarden URL",
-                "description": "Instance base URL (e.g. https://links.example.com).",
-                "default": "http://127.0.0.1:3000"
-            },
-            "LINKWARDEN_TOKEN": {
-                "type": "string",
-                "title": "Linkwarden API token",
-                "description": "Bearer API token from Linkwarden settings."
-            },
-            "LINKWARDEN_MCP_WRITE_SCOPES": {
-                "type": "string",
-                "title": "Write scopes",
-                "description": "Comma-separated domains for create/update: links,collections,tags,raw. Recommended: links,collections. Leave empty for read-only.",
-                "default": ""
-            },
-            "LINKWARDEN_MCP_DELETE_SCOPES": {
-                "type": "string",
-                "title": "Delete scopes",
-                "description": "Comma-separated domains for delete only (never implied by write): links,collections,tags,raw. Leave empty for no deletes.",
-                "default": ""
-            }
-        },
-        "required": [
-            "LINKWARDEN_URL",
-            "LINKWARDEN_TOKEN"
-        ]
-    }
+  "name": "linkwarden-mcp",
+  "version": "0.1.0",
+  "description": "MCP server for Linkwarden bookmarks: read-first search and preserved content, with opt-in write, delete, and collection-delete tools.",
+  "author": {
+    "name": "flumpiey"
+  },
+  "homepage": "https://github.com/flumpiey/linkwarden-mcp",
+  "repository": "https://github.com/flumpiey/linkwarden-mcp",
+  "license": "MIT",
+  "keywords": ["mcp", "linkwarden", "bookmarks", "collections"],
+  "logo": "docs/linkwarden-icon.svg",
+  "variables": {
+    "type": "object",
+    "properties": {
+      "LINKWARDEN_API_URL": {
+        "type": "string",
+        "title": "Linkwarden API URL",
+        "description": "Instance base URL without /api/v1 (e.g. http://127.0.0.1:3000).",
+        "default": "http://127.0.0.1:3000"
+      },
+      "LINKWARDEN_API_KEY": {
+        "type": "string",
+        "title": "Linkwarden API key",
+        "description": "Access token from Linkwarden settings."
+      },
+      "LINKWARDEN_MCP_WRITE_SCOPES": {
+        "type": "string",
+        "title": "Write scopes",
+        "description": "Comma-separated domains for create/update: links,collections,tags,raw. Recommended: links,collections. Empty = read-only.",
+        "default": ""
+      },
+      "LINKWARDEN_MCP_DELETE_SCOPES": {
+        "type": "string",
+        "title": "Delete scopes",
+        "description": "Comma-separated domains for delete only. Never implied by write scopes. Empty = no deletes.",
+        "default": ""
+      }
+    },
+    "required": ["LINKWARDEN_API_URL", "LINKWARDEN_API_KEY"]
+  }
 }
