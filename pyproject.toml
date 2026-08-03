@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "linkwarden-mcp"
-version = "0.1.2"
+version = "0.1.4"
 description = "MCP server for Linkwarden bookmarks: read-first search and preserved content, with opt-in write, delete, and collection-delete tools."
 readme = "README.md"
 license = "MIT"
