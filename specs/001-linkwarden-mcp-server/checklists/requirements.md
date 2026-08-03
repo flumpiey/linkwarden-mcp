@@ -31,4 +31,4 @@
 
 ## Notes
 
-- All three clarification markers resolved 2026-08-03. Spec ready for `/speckit-plan`.
+- All three clarification markers resolved 2026-08-03. Plan updated for manager-mcp layout. Ready for `/speckit-tasks`.

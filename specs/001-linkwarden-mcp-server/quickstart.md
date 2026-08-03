@@ -4,9 +4,9 @@ Validation guide for feature `001-linkwarden-mcp-server`. Implementation tracked
 
 ## Prerequisites
 
-- Python 3.13+
+- Python 3.10+
 - [uv](https://docs.astral.sh/uv/) installed
-- Linkwarden instance with API token (for manual smoke test only)
+- Linkwarden instance with API token (manual smoke only — CI uses mocks)
 
 ## Install (local dev)
 
@@ -58,12 +58,11 @@ uvx linkwarden-mcp
 uv run pytest
 ```
 
-Expected: all tests pass with zero env credentials set.
-
-Key offline scenarios (see `tests/`):
+Expected: all tests pass with zero env credentials set (respx mocks only; no integration suite).
 
 | Test | Proves |
 |------|--------|
+| `test_sdist_contents` | sdist includes src/tests, excludes specs/docs |
 | Denylist blocks `/api/v1/tokens` | SC-003 |
 | Invalid permission aborts startup | SC-004 |
 | Bulk cap refusal names both counts | SC-006 |

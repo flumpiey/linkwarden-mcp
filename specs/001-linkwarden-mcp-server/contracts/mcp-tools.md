@@ -11,7 +11,7 @@ All tools use verb prefixes for client approval hints. Annotations: read tools `
 
 - **Input**: `query` (str, optional), `collection` (str, optional), `tag` (str, optional), `pinned_only` (bool, optional), `sort` (enum: newest|oldest|name|name_desc, optional), `limit` (int, optional)
 - **Output**: List of `{ id, name, url, collection, tags[], pinned, readable }`
-- **Errors**: Unknown collection/tag name with suggestion to list first
+- **Errors**: Unknown collection/tag name with suggestion to list first; ambiguous collection name (multiple matches) with match count and instruction to use collection id
 
 ### get_link
 
@@ -45,7 +45,7 @@ All tools use verb prefixes for client approval hints. Annotations: read tools `
 
 - **Input**: `url` (required), `collection` (str, required), `tags` (str[], optional), `name`, `description`, `note` (optional)
 - **Output**: `{ link_id, collection_id, collection_created: bool, message }`
-- **Errors**: Duplicate url → plain "already saved"
+- **Errors**: Duplicate url → plain "already saved"; ambiguous collection name → match count and instruction to use collection id
 
 ### organise_links
 

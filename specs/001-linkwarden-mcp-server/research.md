@@ -7,11 +7,27 @@ All specification clarifications resolved in `/speckit-clarify` session 2026-08-
 
 ## Decision: Transport and framework
 
-**Decision**: Python 3.13, FastMCP 3.x, stdio transport, `uvx linkwarden-mcp` entry point.
+**Decision**: Python ≥3.10, FastMCP 2.x (`fastmcp>=2.0`), stdio transport, hatchling build, console script `linkwarden-mcp = linkwarden_mcp.server:main`.
 
-**Rationale**: Project already scaffolded with `fastmcp` and `httpx` in `pyproject.toml`. stdio is the standard for local MCP clients (Cursor, Claude Desktop). FastMCP handles tool schema generation and MCP annotations.
+**Rationale**: Matches proven manager-mcp stack. FastMCP 2.x is stable for `@mcp.tool` + `mcp.run()`. hatchling + explicit sdist include avoids PyPI packaging traps. uvx installs from PyPI wheel/sdist.
 
-**Alternatives considered**: Raw MCP Python SDK (more boilerplate); TypeScript (user requirement is Python/uvx); Docker image (explicitly replaced).
+**Alternatives considered**: FastMCP 3.x (user specified 2.x); uv_build backend (manager-mcp uses hatchling); Python 3.13-only ( unnecessarily narrows uvx audience).
+
+## Decision: Repository layout
+
+**Decision**: Mirror manager-mcp flat `src/linkwarden_mcp/` modules. Add `resolve.py` (name↔id cache) and `spec/DIVERGENCES.md` + vendored OpenAPI under `src/linkwarden_mcp/spec/`.
+
+**Rationale**: manager-mcp is the reference MCP server in this ecosystem; copying layout reduces surprise. Spec assets ship in wheel via package tree.
+
+**Alternatives considered**: `tools/` subpackage (extra nesting); top-level `openapi/` (does not ship with package without extra hatch config).
+
+## Decision: Testing strategy
+
+**Decision**: pytest + pytest-asyncio + respx only. All tests mocked. No integration test suite (contrast: manager-mcp has optional live sandbox tests).
+
+**Rationale**: User requirement + SC-007. Linkwarden credentials should never appear in CI.
+
+**Alternatives considered**: Optional integration marker like manager-mcp (rejected — all mocked).
 
 ## Decision: Archive / read_link_content
 

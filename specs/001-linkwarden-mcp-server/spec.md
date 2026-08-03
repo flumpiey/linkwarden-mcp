@@ -4,7 +4,7 @@
 
 **Created**: 2026-08-03
 
-**Status**: Ready for planning
+**Status**: Ready for implementation
 
 **Input**: User description: "A Python MCP server for Linkwarden, installable with uvx, that replaces the Docker-based Linkwarden MCP. Exposes a curated set of tools shaped around actual bookmark-library workflows rather than mirroring every API operation. Serves a library of ~948 links across ~90 collections on a self-hosted instance."
 
@@ -89,7 +89,7 @@ As someone running MCP clients on Windows or elsewhere, I want to install and st
 **Acceptance Scenarios**:
 
 1. **Given** only instance url and access token configured, **When** I start the server, **Then** read tools are available and write/delete tools are not registered.
-2. **Given** write permission enabled, **When** I start the server, **Then** save, organise, create, update, and queue-archive tools are available; delete and merge tools remain unavailable unless delete permission is also set.
+2. **Given** write permission enabled, **When** I start the server, **Then** save, organise, create, update, and queue-archive tools are available; delete, merge, and delete-collection tools remain unavailable unless their respective delete permissions are set.
 3. **Given** an invalid permission value such as `*` or `all`, **When** I start the server, **Then** startup aborts with a message listing valid permission values.
 4. **Given** a missing required configuration value, **When** I start the server, **Then** startup aborts naming the missing variable.
 5. **Given** no credentials configured, **When** I import the package or run help, **Then** no network connection is attempted.
@@ -99,7 +99,7 @@ As someone running MCP clients on Windows or elsewhere, I want to install and st
 ### Edge Cases
 
 - What happens when a save attempt hits duplicate-url detection? The user sees a plain message that the link is already saved, not a bare error code.
-- What happens when a collection name matches multiple existing collections? The system resolves to the existing collection by name without creating a duplicate (name resolution is required before any create).
+- What happens when a collection name matches multiple existing collections? Name resolution MUST fail with an explicit ambiguity error naming how many collections matched and instructing the caller to use a collection id — it MUST NOT pick an arbitrary match or create a duplicate.
 - What happens when search sort is requested in human terms (newest, oldest, name A–Z, name Z–A)? Results follow that order without the caller supplying numeric sort codes.
 - What happens when an agent attempts to reach authentication, session, token, user-administration, migration, or whole-instance preservation endpoints? The request is refused inside the client layer regardless of tool or permission — not merely omitted from the tool list.
 - What happens when preserved content is requested but archiving is incomplete or failed? The tool returns a clear status indicating content is not yet available.
@@ -135,7 +135,7 @@ As someone running MCP clients on Windows or elsewhere, I want to install and st
 **Write behaviour**
 
 - **FR-008**: Saving a link MUST accept a collection by name. When the name matches an existing collection, the link MUST go into that collection. When it does not exist, the server MUST create the collection and state plainly in the result that it was created, naming the collection.
-- **FR-009**: Saving a link MUST NEVER pass a bare collection name to link creation without first resolving the name to an existing collection id. This prevents silent duplicate collections with the same display name.
+- **FR-009**: Saving a link MUST NEVER pass a bare collection name to link creation without first resolving the name to an existing collection id. This prevents silent duplicate collections with the same display name. When more than one collection shares the same display name, resolution MUST fail with an explicit ambiguity error naming the match count and instructing the caller to use a collection id — it MUST NOT pick an arbitrary match.
 - **FR-010**: Updating a link MUST read the current record, merge requested changes, and write the complete record back so callers MAY change one field without supplying the rest.
 - **FR-011**: Queue archive MUST report that preservation has been queued. It MUST NEVER report that archiving completed, because completion is asynchronous.
 
@@ -150,7 +150,7 @@ As someone running MCP clients on Windows or elsewhere, I want to install and st
 
 **Documentation integrity**
 
-- **FR-015**: A vendored API description MUST ship with a divergences document recording every place the published specification contradicts the running Linkwarden service, with source code taking precedence over the published spec.
+- **FR-015**: A vendored API description MUST ship at `src/linkwarden_mcp/spec/` with `DIVERGENCES.md` recording every place the published specification contradicts the running Linkwarden service, with source code taking precedence over the published spec. Runtime does not load the vendored file — it is provenance for maintainers.
 
 ### Key Entities
 
@@ -166,7 +166,7 @@ As someone running MCP clients on Windows or elsewhere, I want to install and st
 ### Measurable Outcomes
 
 - **SC-001**: A user can start the server with only instance url and access token configured and interact with read tools within one minute of first install, without running a container daemon.
-- **SC-002**: With default configuration, zero write or delete tools are exposed; enabling write permission exposes exactly five write-class tools and no delete tools; enabling delete permission additionally exposes delete links, delete tags, and merge tags.
+- **SC-002**: With default configuration, zero write or delete tools are exposed. Enabling write permission exposes exactly five write-class tools and no delete tools. Enabling delete permission additionally exposes exactly three delete tools: delete links, delete tags, and merge tags — not delete collection. Enabling delete-collection permission additionally exposes exactly one delete_collection tool. With all optional permissions enabled, exactly fifteen tools are registered (six read, five write, four delete).
 - **SC-003**: Attempting a forbidden remote operation through the internal API client directly (bypassing tools) is refused, proving safety holds below the tool layer.
 - **SC-004**: An invalid permission value prevents server startup 100% of the time, with valid values listed in the error message.
 - **SC-005**: Saving to an existing collection by name places the link in that collection and creates zero new collections.

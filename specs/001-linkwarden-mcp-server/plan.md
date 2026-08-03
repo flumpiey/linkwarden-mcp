@@ -6,27 +6,30 @@
 
 ## Summary
 
-Replace the Docker-based Linkwarden MCP with a uvx-installable Python server exposing 15 workflow-shaped tools over stdio. Reads are always on; writes and deletes are gated by three env flags. An internal HTTP client enforces a source-tree-derived denylist before any request. All clarifications resolved: archive format (FR-014), tag merge PUT route with delete gating (FR-016), library overview from collections+tags (FR-017).
+Replace the Docker-based Linkwarden MCP with a uvx-installable Python server exposing 15 workflow-shaped tools over stdio. Reads are always on; writes and deletes are gated by three env flags. An internal HTTP client enforces a source-tree-derived denylist before any request. Repository layout follows [manager-mcp](https://github.com/flumpiey/manager-mcp) with two additions: `resolve.py` (shared name↔id cache) and `spec/DIVERGENCES.md` beside the vendored OpenAPI document.
 
 ## Technical Context
 
-**Language/Version**: Python 3.13  
-**Primary Dependencies**: FastMCP ≥3.4.5, httpx ≥0.28.1  
+**Language/Version**: Python ≥3.10  
+**Primary Dependencies**: FastMCP 2.x (`fastmcp>=2.0`), httpx  
+**Build**: hatchling (not uv_build)  
+**Dev Dependencies**: pytest, pytest-asyncio, respx, ruff, hatchling, hatch  
 **Storage**: N/A (stateless HTTP client; in-memory name-resolution cache per process)  
-**Testing**: pytest, pytest-asyncio, respx  
+**Testing**: pytest + respx — **all tests mocked**, no live-instance integration suite  
 **Target Platform**: Windows/macOS/Linux via uvx; stdio MCP transport  
-**Project Type**: CLI MCP server (single package)  
+**Entry Point**: `[project.scripts] linkwarden-mcp = "linkwarden_mcp.server:main"`  
+**Project Type**: Single-package MCP server (manager-mcp layout)  
 **Performance Goals**: Responsive for ~948 links / ~90 collections; overview may paginate tags (correctness over speed)  
-**Constraints**: No credentials required for import/`--help`; full test suite offline; bulk cap default 25  
+**Constraints**: Lazy client (no credentials for import/`--help`); bulk cap default 25; PyPI description final on first release  
 **Scale/Scope**: 15 tools, FR-001–FR-017, 3 permission flags + bulk cap
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-Project constitution (`.specify/memory/constitution.md`) is still the Spec Kit template — not ratified for this repo. **Gate waived** with note: follow ponytail/minimal-diff principles and FR requirements as governing constraints until constitution is amended.
+Project constitution (`.specify/memory/constitution.md`) is still the Spec Kit template — not ratified. **Gate waived**; FR requirements and manager-mcp conventions govern.
 
-Post-design re-check: No constitution violations identified. Design stays single-package, test-first for non-trivial paths, no speculative abstractions.
+Post-design re-check: Single package, flat module layout, no integration tests, hatchling sdist from first commit — aligned with manager-mcp proven patterns.
 
 ## Project Structure
 
@@ -34,82 +37,103 @@ Post-design re-check: No constitution violations identified. Design stays single
 
 ```text
 specs/001-linkwarden-mcp-server/
-├── plan.md              # This file
-├── research.md          # Phase 0
-├── data-model.md        # Phase 1
-├── quickstart.md        # Phase 1
+├── plan.md
+├── research.md
+├── data-model.md
+├── quickstart.md
 ├── contracts/
 │   ├── mcp-tools.md
-│   └── denylist.md
+│   ├── denylist.md
+│   └── packaging.md
 ├── spec.md
 ├── checklists/
-└── tasks.md             # Phase 2 (/speckit-tasks)
+└── tasks.md             # /speckit-tasks
 ```
 
-### Source Code (repository root)
+### Source Code (repository root — mirrors manager-mcp)
 
 ```text
 src/linkwarden_mcp/
 ├── __init__.py
 ├── server.py            # FastMCP app, conditional tool registration, main()
-├── config.py            # env parse, permission flags, startup validation
-├── client.py            # httpx async client, denylist, error translation
-├── resolve.py           # collection/tag name↔id cache (shared)
-├── errors.py            # DeniedPathError, ApiError, BulkCapExceeded
-├── sort.py              # word → integer sort mapping
-└── tools/
-    ├── reads.py         # 6 read tools
-    ├── writes.py        # 5 write tools
-    └── deletes.py       # 4 delete tools (incl. merge_tags)
-
-openapi/
-├── linkwarden.openapi.json   # vendored
-└── DIVERGENCES.md
+├── client.py            # httpx client, denylist, error translation
+├── config.py            # env parse, permission flags, lazy client factory
+├── resolve.py           # collection/tag name↔id cache (shared by search, save, organise, overview)
+├── errors.py
+├── sort.py
+├── reads.py             # 6 read tools
+├── writes.py            # 5 write tools
+├── deletes.py           # 4 delete tools (incl. merge_tags)
+└── spec/
+    ├── linkwarden.openapi.json   # vendored (provenance only; runtime uses live API)
+    └── DIVERGENCES.md            # source-wins divergences from published spec
 
 tests/
-├── conftest.py          # respx fixtures, fake config
+├── conftest.py          # respx fixtures
+├── test_sdist_contents.py
 ├── test_config.py
 ├── test_client_denylist.py
 ├── test_resolve.py
-├── test_overview.py     # sum invariant, tag pagination
+├── test_overview.py
 ├── test_read_content.py
-├── test_permissions.py  # tool registration per flag
-└── test_tools/          # per-tool respx tests
+├── test_permissions.py
+└── test_*.py            # remaining tool tests (all respx-mocked)
+
+.github/workflows/
+└── publish.yml          # filename MUST match PyPI trusted publisher registration
+
+pyproject.toml           # hatchling, sdist include list, final description
+README.md
+LICENSE
 ```
 
-**Structure Decision**: Single Python package under `src/linkwarden_mcp/`. Three tool modules by permission class. No separate service layer — tools call `client` + `resolve` directly (ponytail: one indirection max).
+**Structure Decision**: Flat package modules like manager-mcp (`client.py`, `server.py`, domain modules at package root). No `tools/` subpackage. Vendored spec lives under `src/linkwarden_mcp/spec/` (ships in wheel via hatch `packages`).
+
+## Packaging & PyPI (carry-over traps)
+
+See [contracts/packaging.md](./contracts/packaging.md). Non-negotiables from manager-mcp:
+
+1. **`[tool.hatch.build.targets.sdist] include`** — explicit list from first commit (`src/`, `tests/`, `README.md`, `LICENSE`, `pyproject.toml`). Without it, hatch omits paths and produces empty/broken sdists.
+2. **Workflow filename** — `.github/workflows/publish.yml` must match the PyPI trusted publisher registration exactly.
+3. **`permissions: id-token: write`** on the publish job for OIDC.
+4. **GitHub environment `pypi`** — create under repo Settings → Environments before first publish run.
+5. **Description is immutable per version** — set `project.description` correctly before `0.1.0` upload; PyPI never allows re-uploading a version.
+
+**Proposed description** (finalize before first tag):
+
+> MCP server for Linkwarden bookmarks: read-first search and preserved content, with opt-in write, delete, and collection-delete tools.
 
 ## Implementation Phases
 
-### Phase A — Core infrastructure
+### Phase A — Project baseline (first commit)
 
-1. `config.py` — lazy client factory, permission parsing (FR-002, FR-003)
-2. `client.py` — denylist from source inventory (FR-004), bearer auth, API message errors (FR-013)
-3. `resolve.py` — cached collections/tags fetch
-4. `errors.py`, `sort.py`
+1. `pyproject.toml` — hatchling, Python ≥3.10, FastMCP 2.x, dev deps, scripts entry, sdist include, ruff `py310`
+2. `LICENSE`, `README.md`, `.github/workflows/publish.yml` (publish environment + OIDC)
+3. `src/linkwarden_mcp/spec/` — placeholder openapi + seed `DIVERGENCES.md`
+4. `tests/test_sdist_contents.py` — forbidden-path assertions (copy pattern from manager-mcp)
 
-### Phase B — Read tools (ship first)
+### Phase B — Core infrastructure
 
-5. `tools/reads.py` — search, get_link, list_*, get_library_overview (FR-006, FR-017)
-6. `read_link_content` with textContent + archive format 3 (FR-014)
-7. `server.py` — register read tools unconditionally
+5. `config.py` — permission parsing (FR-002), lazy client (FR-003)
+6. `client.py` — denylist from source tree (FR-004), bearer auth, API errors (FR-013)
+7. `resolve.py` — cached collections/tags (shared FR-006, FR-008, FR-017)
+8. `errors.py`, `sort.py`
 
-### Phase C — Write tools
+### Phase C — Read tools
 
-8. `tools/writes.py` — save (FR-008/009), organise, create_collection, update (FR-010), queue_archive (FR-011)
-9. Conditional registration on `LINKWARDEN_WRITE`
+9. `reads.py` — search, get_link, list_*, get_library_overview (FR-017), read_link_content (FR-014)
+10. `server.py` — register reads unconditionally; `main()` → `mcp.run()`
 
-### Phase D — Delete tools
+### Phase D — Write & delete tools
 
-10. `tools/deletes.py` — delete_links, delete_tags, delete_collection, merge_tags (FR-016)
-11. Conditional registration on DELETE flags
-12. Bulk cap enforcement helper shared by all multi-record tools (FR-005)
+11. `writes.py` — save, organise, create_collection, update_link, queue_archive (FR-008–FR-011)
+12. `deletes.py` — delete_links, delete_tags, merge_tags (FR-016), delete_collection
+13. Conditional registration per FR-001; bulk cap helper (FR-005)
 
-### Phase E — Packaging and docs
+### Phase E — Test suite & spec docs
 
-13. Vendored OpenAPI + `DIVERGENCES.md` (FR-015) — seed from clarify findings
-14. `pyproject.toml` description, README quickstart pointer
-15. Full respx test suite (SC-007)
+14. Full respx test suite — SC-007, denylist, permissions, overview invariants, merge PUT not POST
+15. Complete `DIVERGENCES.md` from clarify findings (FR-015)
 
 ## Complexity Tracking
 
@@ -123,6 +147,7 @@ No constitution violations requiring justification.
 | Data model | [data-model.md](./data-model.md) |
 | Tool contracts | [contracts/mcp-tools.md](./contracts/mcp-tools.md) |
 | Denylist contract | [contracts/denylist.md](./contracts/denylist.md) |
+| Packaging contract | [contracts/packaging.md](./contracts/packaging.md) |
 | Quickstart | [quickstart.md](./quickstart.md) |
 
-**Next command**: `/speckit-tasks` to generate `tasks.md`
+**Next command**: `/speckit-tasks`

@@ -31,5 +31,5 @@ Direct client call to any denied route MUST raise `DeniedPathError` (or equivale
 When vendoring OpenAPI or bumping Linkwarden version:
 
 1. Diff `apps/web/pages/api/v1/` route files against denylist
-2. Record divergences in `openapi/DIVERGENCES.md`
+2. Record divergences in `src/linkwarden_mcp/spec/DIVERGENCES.md`
 3. Add test for any new sensitive route discovered
