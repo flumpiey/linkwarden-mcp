@@ -1,5 +1,7 @@
 [project]
 name = "linkwarden-mcp-desktop"
-version = "0.1.2"
+version = "0.1.4"
 requires-python = ">=3.10"
-dependencies = ["linkwarden-mcp>=0.1.2"]
+# Keep empty: Claude Desktop `server.type=uv` syncs this file at install time.
+# Runtime pulls the PyPI package via `uv tool run` in manifest mcp_config.
+dependencies = []
