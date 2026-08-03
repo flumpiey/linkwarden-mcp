@@ -10,6 +10,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 FORBIDDEN_PREFIXES = (
+    ".claude/",
     "specs/",
     "docs/",
     "skills/",
@@ -19,6 +20,12 @@ FORBIDDEN_PREFIXES = (
     ".github/",
     "mcpb/",
 )
+
+
+def _archive_relative(name: str) -> str:
+    """Strip sdist root dir (e.g. linkwarden_mcp-0.1.0/) for prefix checks."""
+    parts = name.split("/", 1)
+    return parts[1] if len(parts) > 1 else name
 
 
 @pytest.mark.parametrize("target", ["sdist"])
@@ -36,8 +43,12 @@ def test_sdist_excludes_dev_paths(target: str) -> None:
     with tarfile.open(archive, "r:gz") as tf:
         names = tf.getnames()
     for forbidden in FORBIDDEN_PREFIXES:
-        hits = [n for n in names if forbidden in n or n.endswith(forbidden.rstrip("/"))]
+        hits: list[str] = []
+        for name in names:
+            rel = _archive_relative(name)
+            if rel == forbidden.rstrip("/") or rel.startswith(forbidden):
+                hits.append(name)
         assert not hits, f"sdist contains forbidden path {forbidden!r}: {hits[:5]}"
 
     assert any("src/linkwarden_mcp" in n for n in names)
-    assert any("tests/" in n for n in names)
+    assert any(_archive_relative(n).startswith("tests/") for n in names)

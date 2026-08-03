@@ -21,9 +21,9 @@ linkwarden-mcp = "linkwarden_mcp.server:main"
 packages = ["src/linkwarden_mcp"]
 
 [tool.hatch.build.targets.sdist]
-include = [
-  "src/",
-  "tests/",
+only-include = [
+  "src",
+  "tests",
   "README.md",
   "LICENSE",
   "pyproject.toml",

@@ -60,9 +60,10 @@ linkwarden-mcp = "linkwarden_mcp.server:main"
 packages = ["src/linkwarden_mcp"]
 
 [tool.hatch.build.targets.sdist]
-include = [
-  "src/",
-  "tests/",
+# only-include is exclusive (unlike include, which can still traverse VCS roots).
+only-include = [
+  "src",
+  "tests",
   "README.md",
   "LICENSE",
   "pyproject.toml",
