@@ -440,7 +440,7 @@ When a scope is listed in `LINKWARDEN_MCP_WRITE_SCOPES`, the server registers **
 | `delete_links` | DELETE `links` | Delete multiple links |
 | `delete_tags` | DELETE `tags` | Delete tags by id or name |
 | `merge_tags` | DELETE `tags` | Merge tags into a new name (destructive) |
-| `delete_collection` | DELETE `collections` | Delete a collection and all its links |
+| `delete_collection` | DELETE `collections` | Delete a collection after user chooses delete/move/cancel for its links (elicitation or `on_links`) |
 
 Example with recommended scopes only:
 
@@ -499,6 +499,7 @@ The Cursor plugin discovers this skill from `skills/`. Without the plugin, copy 
 
 ```bash
 uv sync --extra dev
+npm install          # installs lefthook + commitlint; registers git hooks
 uv run linkwarden-mcp
 ```
 
@@ -507,6 +508,22 @@ Offline tests only (respx). No live Linkwarden required:
 ```bash
 uv run ruff check src tests
 uv run pytest
+```
+
+### Git hooks (lefthook)
+
+| Hook / command | What it runs |
+|----------------|--------------|
+| **pre-commit** | `ruff check` + full `pytest` (mocked suite) |
+| **commit-msg** | [commitlint](https://commitlint.js.org/) Conventional Commits |
+| **`npm run pre-publish`** | ensure build/twine → ruff → pytest → sdist contents → `python -m build` → `twine check` → `npx @anthropic-ai/mcpb pack mcpb` |
+
+Commit messages must follow Conventional Commits, e.g. `feat(api): add delete_links tool`.
+
+Run the local publish gate before tagging a release:
+
+```bash
+npm run pre-publish
 ```
 
 GitHub Actions matrix: Python 3.10 and 3.12.

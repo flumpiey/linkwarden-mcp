@@ -35,22 +35,26 @@ Issues = "https://github.com/flumpiey/linkwarden-mcp/issues"
 
 [dependency-groups]
 dev = [
+  "build>=1.2.0",
   "hatch>=1.17.1",
   "hatchling>=1.31.0",
   "pytest>=8.0.0",
   "pytest-asyncio>=0.24.0",
   "respx>=0.22.0",
   "ruff>=0.8.0",
+  "twine>=6.0.0",
 ]
 
 [project.optional-dependencies]
 dev = [
+  "build>=1.2.0",
   "hatch>=1.17.1",
   "hatchling>=1.31.0",
   "pytest>=8.0.0",
   "pytest-asyncio>=0.24.0",
   "respx>=0.22.0",
   "ruff>=0.8.0",
+  "twine>=6.0.0",
 ]
 
 [project.scripts]

@@ -1,0 +1,51 @@
+# Git hooks + local publish gate for linkwarden-mcp.
+# Install: npm install  (runs `lefthook install` via prepare)
+# Manual publish gate: npm run pre-publish
+#
+# `uv run --no-sync` avoids rewriting the editable install (can fail on Windows
+# while a local linkwarden-mcp process holds .venv/Scripts/linkwarden-mcp.exe).
+
+pre-commit:
+  piped: true
+  commands:
+    ruff:
+      priority: 1
+      run: uv run --no-sync ruff check src tests
+    pytest:
+      priority: 2
+      run: uv run --no-sync pytest
+
+commit-msg:
+  commands:
+    commitlint:
+      run: npx --no -- commitlint --edit {1}
+
+# Not invoked by git — run before tagging / packing a release:
+#   npm run pre-publish
+#   # or: npx lefthook run pre-publish
+pre-publish:
+  piped: true
+  commands:
+    ensure-publish-deps:
+      priority: 1
+      # Prefer `uv pip` over `uv sync` so a running editable install
+      # (Windows lock on linkwarden-mcp.exe) does not fail the gate.
+      run: uv pip install "build>=1.2.0" "twine>=6.0.0"
+    ruff:
+      priority: 2
+      run: uv run --no-sync ruff check src tests
+    pytest:
+      priority: 3
+      run: uv run --no-sync pytest
+    sdist-contents:
+      priority: 4
+      run: uv run --no-sync pytest tests/test_sdist_contents.py
+    build:
+      priority: 5
+      run: uv run --no-sync python -m build
+    twine:
+      priority: 6
+      run: uv run --no-sync twine check dist/*
+    mcpb-pack:
+      priority: 7
+      run: npx @anthropic-ai/mcpb pack mcpb

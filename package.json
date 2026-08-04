@@ -1,0 +1,20 @@
+{
+  "name": "linkwarden-mcp",
+  "private": true,
+  "description": "Dev tooling for git hooks (lefthook) and Conventional Commits (commitlint). The Python package is published via uv/PyPI, not npm.",
+  "scripts": {
+    "prepare": "lefthook install",
+    "pre-publish": "lefthook run pre-publish",
+    "lint": "uv run ruff check src tests",
+    "test": "uv run pytest",
+    "commitlint": "commitlint --edit"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^19.8.1",
+    "@commitlint/config-conventional": "^19.8.1",
+    "lefthook": "^1.12.3"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

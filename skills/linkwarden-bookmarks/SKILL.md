@@ -51,6 +51,10 @@ Also stop and relay verbatim for:
 - `BulkCapExceeded` — shrink the batch or raise `LINKWARDEN_MAX_BULK`.
 - Dry-run payloads (`dry_run: true`) — do **not** apply until the user
   confirms `dry_run=false`.
+- `delete_collection` with `needs_user_input: true` — relay `question` and
+  `options` verbatim, ask the user how to dispose of links (delete / move /
+  cancel), then re-call with `on_links` (and `move_to` when moving). Do not
+  invent a default disposition.
 
 ## Task tools (prefer over raw CRUD)
 
@@ -70,7 +74,7 @@ Registered when required scopes are in `effective_write_scopes`:
 | `delete_links` | DELETE `links` | Delete these bookmarks |
 | `delete_tags` | DELETE `tags` | Delete these tags |
 | `merge_tags` | DELETE `tags` | Merge tags into one name |
-| `delete_collection` | DELETE `collections` | Delete this collection and its links |
+| `delete_collection` | DELETE `collections` (+ links delete/write for disposition) | Delete collection after user chooses delete/move/cancel for its links |
 
 Prefer `smart_save_link` / `apply_triage_plan` / `bulk_sort_by_rules` over
 manual `save_link` + `organise_links` when filing an inbox. Use `update_link`

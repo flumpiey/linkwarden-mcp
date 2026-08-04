@@ -8,7 +8,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
 
-from fastmcp import FastMCP
+from fastmcp import Context, FastMCP
 from mcp.types import Icon
 
 from linkwarden_mcp import deletes, reads, workflows, writes
@@ -446,14 +446,36 @@ def register_collections_delete_tools() -> None:
         name="delete_collection",
         annotations=DESTRUCTIVE_ANNOTATIONS,
         description=(
-            "Delete a collection and all its links. "
-            "Requires 'collections' in LINKWARDEN_MCP_DELETE_SCOPES."
+            "Delete a collection after disposing of its links. When the collection "
+            "has links, asks the user (MCP elicitation) whether to delete those "
+            "links, move them (move_to, default Unorganized), or cancel. Without "
+            "elicitation, returns needs_user_input — ask the user, then re-call "
+            "with on_links='delete'|'move'|'cancel'. Requires 'collections' in "
+            "LINKWARDEN_MCP_DELETE_SCOPES; delete/move also need matching links "
+            "delete/write scopes."
         ),
     )
-    async def delete_collection_tool(collection: str | int) -> dict[str, Any]:
+    async def delete_collection_tool(
+        collection: str | int,
+        ctx: Context,
+        on_links: str | None = None,
+        move_to: str | None = None,
+    ) -> dict[str, Any]:
         require_delete_scope(get_policy(), "collections")
+        action: deletes.OnLinksAction | None = None
+        if on_links is not None:
+            normalized = on_links.strip().casefold()
+            if normalized not in {"delete", "move", "cancel"}:
+                raise ValueError("on_links must be one of: 'delete', 'move', 'cancel'.")
+            action = normalized  # type: ignore[assignment]
         return await deletes.delete_collection(
-            get_client(), _resolver(), collection=collection
+            get_client(),
+            _resolver(),
+            collection=collection,
+            on_links=action,
+            move_to=move_to,
+            max_bulk=_settings().max_bulk,
+            ctx=ctx,
         )
 
 

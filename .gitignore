@@ -9,6 +9,8 @@
 # Cursor IDE project config, rules, hooks, and skills
 .cursor/
 
+.claude/
+
 # Agent skill packs and local agent assets
 .agents/
 
@@ -60,9 +62,15 @@ htmlcov/
 .nox/
 
 # -----------------------------------------------------------------------------
+# Node (lefthook / commitlint only — package is published via PyPI)
+# -----------------------------------------------------------------------------
+node_modules/
+
+# -----------------------------------------------------------------------------
 # Packaged Desktop Extension artifacts (built locally / attached to releases)
 # -----------------------------------------------------------------------------
 *.mcpb
+
 
 # -----------------------------------------------------------------------------
 # OS / editor noise
