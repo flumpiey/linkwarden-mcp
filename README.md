@@ -158,7 +158,7 @@ Restart Cursor after saving. Confirm `linkwarden` under MCP settings.
 <details>
 <summary><strong>Claude Desktop</strong></summary>
 
-**Desktop Extension (`.mcpb`):** download [`mcpb.mcpb`](https://github.com/flumpiey/linkwarden-mcp/releases/latest/download/mcpb.mcpb) from [GitHub Releases](https://github.com/flumpiey/linkwarden-mcp/releases). Use **v0.1.4+** (needs [`uv`](https://docs.astral.sh/uv/) on PATH). Launch is `uv tool run --python 3.12 linkwarden-mcp`. Do not put the PyPI package in `mcpb/pyproject.toml` dependencies — Claude Desktop syncs that file at install and can fail on system Python 3.13.
+**Desktop Extension (`.mcpb`):** download [`mcpb.mcpb`](https://github.com/flumpiey/linkwarden-mcp/releases/latest/download/mcpb.mcpb) from [GitHub Releases](https://github.com/flumpiey/linkwarden-mcp/releases). Use **v0.1.5+** (needs [`uv`](https://docs.astral.sh/uv/) on PATH). Launch is `uv tool run --python 3.12 linkwarden-mcp`. Do not put the PyPI package in `mcpb/pyproject.toml` dependencies — Claude Desktop syncs that file at install and can fail on system Python 3.13.
 
 1. Open Claude Desktop → **Settings → Extensions**.
 2. Open **Advanced settings** → **Install Extension…**

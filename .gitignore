@@ -20,6 +20,9 @@
 # Graphify knowledge-graph output (regenerable)
 graphify-out/
 
+# Debug-session NDJSON logs
+debug-*.log
+
 # Local live-RE probe dumps (may contain business data)
 specs/**/_quote-*.json
 specs/**/_quote-*.txt
