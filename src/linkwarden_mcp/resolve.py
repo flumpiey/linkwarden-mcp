@@ -36,6 +36,14 @@ class NameResolver:
             raise AmbiguousNameError("collection", name, len(matches))
         raise UnknownNameError("collection", name)
 
+    async def collection_id_and_owner(self, name: str) -> tuple[int, int]:
+        matches = [c for c in await self.collections() if c.get("name") == name]
+        if len(matches) == 1:
+            return int(matches[0]["id"]), int(matches[0]["ownerId"])
+        if len(matches) > 1:
+            raise AmbiguousNameError("collection", name, len(matches))
+        raise UnknownNameError("collection", name)
+
     async def tag_id(self, name: str) -> int:
         matches = [t for t in await self.tags() if t.get("name") == name]
         if len(matches) == 1:

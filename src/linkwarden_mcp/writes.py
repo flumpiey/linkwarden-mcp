@@ -22,7 +22,7 @@ async def save_link(
     max_bulk: int = 25,
 ) -> dict[str, Any]:
     collection_id, created = await resolver.ensure_collection_id(collection)
-    body: dict[str, Any] = {"url": url, "collectionId": collection_id}
+    body: dict[str, Any] = {"url": url, "collection": {"id": collection_id}}
     if name:
         body["name"] = name
     if description:
@@ -30,7 +30,7 @@ async def save_link(
     if note:
         body["note"] = note
     if tags:
-        body["tags"] = tags
+        body["tags"] = [{"name": t} for t in tags]
     try:
         result = await client.post("/api/v1/links", json=body)
     except ApiError as exc:
@@ -55,11 +55,16 @@ async def organise_links(
     max_bulk: int = 25,
 ) -> dict[str, Any]:
     check_bulk_cap(len(link_ids), max_bulk)
-    body: dict[str, Any] = {"linkIds": link_ids}
+    new_data: dict[str, Any] = {}
     if collection:
-        body["collectionId"] = await resolver.collection_id(collection)
+        new_data["collectionId"] = await resolver.collection_id(collection)
     if tags is not None:
-        body["tags"] = tags
+        new_data["tags"] = [{"name": t} for t in tags]
+    body: dict[str, Any] = {
+        "links": [{"id": i} for i in link_ids],
+        "removePreviousTags": tags is not None,
+        "newData": new_data,
+    }
     await client.put("/api/v1/links", json=body)
     return {"updated_count": len(link_ids), "message": f"Updated {len(link_ids)} links."}
 
@@ -98,21 +103,28 @@ async def update_link(
     tags: list[str] | None = None,
 ) -> dict[str, Any]:
     current = await client.get(f"/api/v1/links/{link_id}")
+    if collection is not None:
+        coll_id, owner_id = await resolver.collection_id_and_owner(collection)
+    else:
+        coll = current.get("collection") or {}
+        coll_id, owner_id = coll.get("id"), coll.get("ownerId")
+    if tags is not None:
+        tag_objs: list[dict[str, str]] = [{"name": t} for t in tags]
+    else:
+        tag_objs = [
+            {"name": t.get("name")}
+            for t in (current.get("tags") or [])
+            if isinstance(t, dict) and t.get("name")
+        ]
     body: dict[str, Any] = {
+        "id": link_id,
         "name": name if name is not None else current.get("name"),
         "url": url if url is not None else current.get("url"),
         "description": description if description is not None else current.get("description"),
         "note": note if note is not None else current.get("note"),
+        "collection": {"id": coll_id, "ownerId": owner_id},
+        "tags": tag_objs,
     }
-    if collection is not None:
-        body["collectionId"] = await resolver.collection_id(collection)
-    else:
-        coll = current.get("collection") or {}
-        body["collectionId"] = coll.get("id")
-    if tags is not None:
-        body["tags"] = tags
-    else:
-        body["tags"] = [t.get("name") for t in (current.get("tags") or []) if isinstance(t, dict)]
     updated = await client.put(f"/api/v1/links/{link_id}", json=body)
     return _link_result(updated)
 
