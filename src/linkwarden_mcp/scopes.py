@@ -1,4 +1,4 @@
-"""Write/delete scope parsing, domain maps, and path denylist."""
+"""Write/delete scope parsing and domain maps. The path denylist lives in client.py."""
 
 from __future__ import annotations
 
@@ -41,14 +41,6 @@ PATH_TO_RESOURCE: dict[str, str] = {
     "/api/v1/tags/merge": "tags",
 }
 
-_DENY_PREFIXES = (
-    "/api/v1/tokens",
-    "/api/v1/session",
-    "/api/v1/auth",
-    "/api/v1/migration",
-    "/api/v1/worker/preservation",
-)
-
 WRITE_METHODS = frozenset({"POST", "PUT", "PATCH", "DELETE"})
 
 
@@ -57,7 +49,7 @@ class ScopeConfigError(ValueError):
 
 
 class WritesDeniedError(RuntimeError):
-    """Client refused a mutating request (denylist or missing scope)."""
+    """Client refused a mutating request (missing scope or unscoped resource)."""
 
 
 def _normalize_path(path: str) -> str:
@@ -71,14 +63,6 @@ def _normalize_path(path: str) -> str:
             continue
         out.append(part)
     return "/".join(out) if out and out[0] == "" else "/" + "/".join(out)
-
-
-def is_denylisted(path: str) -> bool:
-    norm = _normalize_path(path).casefold()
-    for prefix in _DENY_PREFIXES:
-        if norm == prefix or norm.startswith(prefix + "/"):
-            return True
-    return bool(norm.startswith("/api/v1/users"))
 
 
 def path_to_resource(path: str) -> str | None:
@@ -154,10 +138,6 @@ class WritePolicy:
         method = method.upper()
         if method not in WRITE_METHODS:
             return
-        if is_denylisted(path):
-            raise WritesDeniedError(
-                f"{method} {path} is permanently denied (denylist)."
-            )
         # Destructive merge uses PUT but is gated by DELETE_SCOPES (like delete_tags).
         if _normalize_path(path) == "/api/v1/tags/merge":
             if "tags" not in self.effective_delete_scopes:

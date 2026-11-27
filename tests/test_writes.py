@@ -10,7 +10,7 @@ import respx
 from conftest import BASE_URL, FULL_WRITE_POLICY
 
 from linkwarden_mcp.client import LinkwardenClient
-from linkwarden_mcp.errors import BulkCapExceeded
+from linkwarden_mcp.errors import ApiError, BulkCapExceeded
 from linkwarden_mcp.resolve import NameResolver
 from linkwarden_mcp.writes import organise_links, queue_archive, save_link, update_link
 
@@ -231,4 +231,44 @@ async def test_queue_archive_bulk_cap(auth_env: None) -> None:
     client = LinkwardenClient(BASE_URL, "token", policy=FULL_WRITE_POLICY)
     with pytest.raises(BulkCapExceeded):
         await queue_archive(client, link_ids=list(range(26)), max_bulk=25)
+    await client.aclose()
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_update_link_does_not_send_note(auth_env: None) -> None:
+    respx.get(f"{BASE_URL}/api/v1/links/51").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "id": 51,
+                "name": "N",
+                "url": "https://n.example",
+                "note": "stale",
+                "collection": {"id": 1, "ownerId": 7},
+                "tags": [],
+            },
+        )
+    )
+    put = respx.put(f"{BASE_URL}/api/v1/links/51").mock(
+        return_value=httpx.Response(200, json={"id": 51})
+    )
+    client = LinkwardenClient(BASE_URL, "token", policy=FULL_WRITE_POLICY)
+    await update_link(client, NameResolver(client), link_id=51, name="M")
+    assert "note" not in json.loads(put.calls.last.request.content)
+    await client.aclose()
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_save_link_non_409_already_error_is_raised(auth_env: None) -> None:
+    respx.get(f"{BASE_URL}/api/v1/collections").mock(
+        return_value=httpx.Response(200, json=[{"id": 4, "name": "Inbox"}])
+    )
+    respx.post(f"{BASE_URL}/api/v1/links").mock(
+        return_value=httpx.Response(500, json={"message": "worker already running"})
+    )
+    client = LinkwardenClient(BASE_URL, "token", policy=FULL_WRITE_POLICY)
+    with pytest.raises(ApiError, match="already running"):
+        await save_link(client, NameResolver(client), url="https://a.example", collection="Inbox")
     await client.aclose()

@@ -19,10 +19,29 @@ from linkwarden_mcp.errors import DeniedPathError
         ("DELETE", "/api/v1/users/1"),
         ("POST", "/api/v1/migration"),
         ("GET", "/api/v1/migration"),
+        # Union with the former scopes.py write denylist.
+        ("PUT", "/api/v1/migration"),
+        ("DELETE", "/api/v1/migration/1"),
+        ("POST", "/api/v1/worker/preservation"),
+        ("PUT", "/api/v1/worker/preservation"),
+        ("POST", "/api/v1/users"),
+        ("PUT", "/api/v1/users/me"),
+        # Case-folded.
+        ("GET", "/API/v1/Tokens"),
+        ("DELETE", "/api/v1/USERS/1"),
+        ("POST", "/api/v1/Migration"),
     ],
 )
 def test_denylist_blocks_sensitive_routes(method: str, path: str) -> None:
     assert deny_reason(method, path) is not None
+
+
+@pytest.mark.parametrize(
+    ("method", "path"),
+    [("GET", "/api/v1/links"), ("POST", "/api/v1/links"), ("PUT", "/api/v1/tags/merge")],
+)
+def test_denylist_allows_library_routes(method: str, path: str) -> None:
+    assert deny_reason(method, path) is None
 
 
 def test_users_me_allowed() -> None:

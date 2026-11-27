@@ -7,14 +7,14 @@
     "url": "https://github.com/flumpiey/linkwarden-mcp",
     "source": "github"
   },
-  "version": "0.1.6",
+  "version": "0.1.7",
   "websiteUrl": "https://github.com/flumpiey/linkwarden-mcp",
   "packages": [
     {
       "registryType": "pypi",
       "registryBaseUrl": "https://pypi.org",
       "identifier": "linkwarden-mcp",
-      "version": "0.1.6",
+      "version": "0.1.7",
       "runtimeHint": "uvx",
       "transport": {
         "type": "stdio"

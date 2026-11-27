@@ -1,11 +1,11 @@
 # Linkwarden API divergences (source wins over OpenAPI)
 
-Vendored OpenAPI is reference-only. Runtime behavior follows Linkwarden source tree.
+Runtime behavior follows the Linkwarden source tree (checked against v2.17.0). No OpenAPI copy is vendored.
 
 ## API response envelope
 
 - **OpenAPI / mocks**: Often show bare arrays or objects.
-- **Live instance**: Most routes return `{"response": ...}`; tags use `{"data": {"tags": [...], "nextCursor": ...}}`; search uses `{"data": {"links": [...]}}`.
+- **Live instance**: Most routes return `{"response": ...}`; tags use `{"data": {"tags": [...], "nextCursor": ...}}`; search uses `{"data": {"links": [...], "nextCursor": ...}}`.
 - **MCP client**: Unwraps `response` in `client.py`; tags via `parse_tags_payload()`; search via `parse_links_payload()`.
 
 ## Archive content (`read_link_content`)
@@ -31,7 +31,14 @@ Vendored OpenAPI is reference-only. Runtime behavior follows Linkwarden source t
 
 - **Source**: Tag merge uses PUT, not POST.
 
+## Search (`search_links`)
+
+- **Source**: `GET /api/v1/search` reads `searchQueryString`, `collectionId`, `tagId`, `pinnedOnly=true`, `sort` and `cursor`. It ignores `take` and returns fixed pages (`PAGINATION_TAKE_COUNT`, default 50) with `data.nextCursor`.
+- **MCP**: `search_links` follows `nextCursor` until `limit` (default 50) links or no more pages.
+- **Source**: Link responses carry `pinnedBy: [{id}]`, not `pinned`. The schema has no `note` field.
+- **Source**: Link `Sort` is 0 to 3 (4 is Custom order); `TagSort` adds 4/5 for link count. `GET /api/v1/collections` takes no sort.
+
 ## Workflow scans
 
-- Workflow tools (`find_unsorted_links`, `find_duplicate_links`, overlap/structure helpers) scan at most **500 links** per collection query via `search` `take`.
+- Workflow tools (`find_unsorted_links`, `find_duplicate_links`, overlap/structure helpers) scan at most **500 links** per collection query (cursor pages of 50).
 - Suggestions are local heuristics (domain table + `difflib`); they do not call Linkwarden AI tagging APIs.

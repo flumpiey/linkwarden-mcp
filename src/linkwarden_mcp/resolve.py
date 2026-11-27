@@ -8,6 +8,25 @@ from linkwarden_mcp.client import LinkwardenClient, parse_tags_payload
 from linkwarden_mcp.errors import AmbiguousNameError, UnknownNameError
 
 UNORGANIZED = "Unorganized"
+MAX_TAG_PAGES = 100
+
+
+async def fetch_all_tags(
+    client: LinkwardenClient, params: dict[str, Any] | None = None
+) -> tuple[list[dict[str, Any]], bool]:
+    """Walk the cursor-paged /api/v1/tags. Returns (tags, partial)."""
+    cursor: Any | None = None
+    all_tags: list[dict[str, Any]] = []
+    for _ in range(MAX_TAG_PAGES):
+        page_params = dict(params or {})
+        if cursor is not None:
+            page_params["cursor"] = cursor
+        raw = await client.get("/api/v1/tags", params=page_params or None)
+        batch, cursor = parse_tags_payload(raw)
+        all_tags.extend(batch)
+        if not batch or cursor is None:
+            return all_tags, False
+    return all_tags, True
 
 
 class NameResolver:
@@ -15,6 +34,7 @@ class NameResolver:
         self._client = client
         self._collections: list[dict[str, Any]] | None = None
         self._tags: list[dict[str, Any]] | None = None
+        self.tags_partial = False
 
     async def collections(self, *, refresh: bool = False) -> list[dict[str, Any]]:
         if self._collections is None or refresh:
@@ -24,8 +44,7 @@ class NameResolver:
 
     async def tags(self, *, refresh: bool = False) -> list[dict[str, Any]]:
         if self._tags is None or refresh:
-            raw = await self._client.get("/api/v1/tags")
-            self._tags, _ = parse_tags_payload(raw)
+            self._tags, self.tags_partial = await fetch_all_tags(self._client)
         return self._tags
 
     async def collection_id(self, name: str) -> int:

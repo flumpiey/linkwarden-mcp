@@ -2,23 +2,27 @@
 
 from __future__ import annotations
 
-SORT_WORDS: dict[str, int] = {
+# Upstream `Sort` enum (links); 4 is Custom order, not exposed.
+LINK_SORT_WORDS: dict[str, int] = {
     "newest": 0,
     "oldest": 1,
     "name": 2,
     "name_asc": 2,
     "name_desc": 3,
-    "tag_count_desc": 4,
-    "tag_count_asc": 5,
+}
+
+# Upstream `TagSort` enum adds link-count ordering.
+TAG_SORT_WORDS: dict[str, int] = {
+    **LINK_SORT_WORDS,
+    "link_count_desc": 4,
+    "link_count_asc": 5,
 }
 
 
-def sort_to_int(word: str | None) -> int | None:
+def sort_to_int(word: str | None, words: dict[str, int] = LINK_SORT_WORDS) -> int | None:
     if word is None:
         return None
     key = word.strip().lower()
-    if key not in SORT_WORDS:
-        raise ValueError(
-            f"Unknown sort {word!r}. Valid: {', '.join(sorted(SORT_WORDS))}"
-        )
-    return SORT_WORDS[key]
+    if key not in words:
+        raise ValueError(f"Unknown sort {word!r}. Valid: {', '.join(sorted(words))}")
+    return words[key]

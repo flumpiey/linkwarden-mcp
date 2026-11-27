@@ -17,16 +17,20 @@ DENIED_PREFIXES = (
     "/api/v1/auth",
 )
 
-WHOLE_INSTANCE_PRESERVATION = frozenset({"preserveAll", "rePreserveAll"})
+# Any mutating method under these prefixes is denied.
+DENIED_WRITE_PREFIXES = (
+    "/api/v1/migration",
+    "/api/v1/worker/preservation",
+)
 
 
 def _normalise_path(path: str) -> str:
     parsed = urlparse(path)
-    return parsed.path.rstrip("/") or "/"
+    return (parsed.path.rstrip("/") or "/").casefold()
 
 
 def deny_reason(method: str, path: str, *, json: Any = None) -> str | None:
-    """Return denial reason or None if allowed."""
+    """Return denial reason or None if allowed. The only path denylist."""
     method = method.upper()
     norm = _normalise_path(path)
 
@@ -34,16 +38,16 @@ def deny_reason(method: str, path: str, *, json: Any = None) -> str | None:
         if norm.startswith(prefix):
             return f"{method} {norm} is denied (sensitive route {prefix})."
 
-    if norm.startswith("/api/v1/users") and not (method == "GET" and norm.endswith("/me")):
+    if norm.startswith("/api/v1/users") and not (method == "GET" and norm == "/api/v1/users/me"):
         return f"{method} {norm} is denied (user admin). Only GET /api/v1/users/me is allowed."
 
-    if norm == "/api/v1/migration" and method in {"GET", "POST"}:
+    if norm == "/api/v1/migration" and method == "GET":
         return f"{method} {norm} is denied (full library export/import)."
 
-    if norm == "/api/v1/worker/preservation" and method == "POST":
-        action = (json or {}).get("action") if isinstance(json, dict) else None
-        if action in WHOLE_INSTANCE_PRESERVATION:
-            return f"POST {norm} with action={action!r} is denied (whole-instance preservation)."
+    if method in WRITE_METHODS:
+        for prefix in DENIED_WRITE_PREFIXES:
+            if norm == prefix or norm.startswith(prefix + "/"):
+                return f"{method} {norm} is denied (import or whole-instance route {prefix})."
 
     if norm == "/api/v1/links/archive" and method == "DELETE":
         link_ids = (json or {}).get("linkIds") if isinstance(json, dict) else None
@@ -72,22 +76,24 @@ def parse_tags_payload(data: Any) -> tuple[list[dict[str, Any]], Any | None]:
     return [], None
 
 
-def parse_links_payload(data: Any) -> list[dict[str, Any]]:
-    """Normalize search/list link payloads to a list of link dicts."""
+def parse_links_payload(data: Any) -> tuple[list[dict[str, Any]], Any | None]:
+    """Normalize search/list link payloads to (link dicts, nextCursor)."""
     if isinstance(data, list):
-        return [x for x in data if isinstance(x, dict)]
+        return [x for x in data if isinstance(x, dict)], None
     if not isinstance(data, dict):
-        return []
+        return [], None
     inner = data.get("data")
     if isinstance(inner, dict):
         links = inner.get("links") or inner.get("data") or []
-        return [x for x in links if isinstance(x, dict)] if isinstance(links, list) else []
+        if not isinstance(links, list):
+            return [], None
+        return [x for x in links if isinstance(x, dict)], inner.get("nextCursor")
     if isinstance(inner, list):
-        return [x for x in inner if isinstance(x, dict)]
+        return [x for x in inner if isinstance(x, dict)], None
     links = data.get("links")
     if isinstance(links, list):
-        return [x for x in links if isinstance(x, dict)]
-    return []
+        return [x for x in links if isinstance(x, dict)], None
+    return [], None
 
 
 def extract_api_message(response: httpx.Response) -> str:

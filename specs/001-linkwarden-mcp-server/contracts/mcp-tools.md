@@ -26,12 +26,12 @@ All tools use verb prefixes for client approval hints. Annotations: read tools `
 
 ### list_collections
 
-- **Input**: `sort` (optional word)
+- **Input**: none (Linkwarden returns the user's collection order)
 - **Output**: Tree-friendly list with `{ id, name, parent, link_count, members? }`
 
 ### list_tags
 
-- **Input**: `sort` (optional, includes tag_count_desc/asc)
+- **Input**: `sort` (optional, includes link_count_desc/asc)
 - **Output**: `{ id, name, link_count }[]`
 
 ### get_library_overview
@@ -43,7 +43,7 @@ All tools use verb prefixes for client approval hints. Annotations: read tools `
 
 ### save_link
 
-- **Input**: `url` (required), `collection` (str, required), `tags` (str[], optional), `name`, `description`, `note` (optional)
+- **Input**: `url` (required), `collection` (str, required), `tags` (str[], optional), `name`, `description` (optional)
 - **Output**: `{ link_id, collection_id, collection_created: bool, message }`
 - **Errors**: Duplicate url → plain "already saved"; ambiguous collection name → match count and instruction to use collection id
 
@@ -59,7 +59,7 @@ All tools use verb prefixes for client approval hints. Annotations: read tools `
 
 ### update_link
 
-- **Input**: `link_id` (required), optional `name`, `url`, `description`, `note`, `collection`, `tags`
+- **Input**: `link_id` (required), optional `name`, `url`, `description`, `collection`, `tags`
 - **Output**: Updated link summary
 
 ### queue_archive
