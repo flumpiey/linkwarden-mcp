@@ -1,4 +1,4 @@
-"""Scope parsing, denylist, and authorize matrix (no live Linkwarden)."""
+"""Scope parsing and authorize matrix (no live Linkwarden)."""
 
 from __future__ import annotations
 
@@ -9,7 +9,6 @@ from linkwarden_mcp.scopes import (
     ScopeConfigError,
     WritePolicy,
     WritesDeniedError,
-    is_denylisted,
     parse_scope_csv,
     reject_legacy_write_envs,
 )
@@ -72,23 +71,6 @@ def test_raw_expands_effective_scopes() -> None:
     policy.authorize("DELETE", "/api/v1/collections/1")
 
 
-@pytest.mark.parametrize(
-    "path",
-    [
-        "/api/v1/tokens",
-        "/api/v1/tokens/1",
-        "/api/v1/session",
-        "/api/v1/auth/login",
-        "/api/v1/users",
-        "/api/v1/users/me",
-        "/api/v1/migration",
-        "/api/v1/worker/preservation",
-    ],
-)
-def test_is_denylisted(path: str) -> None:
-    assert is_denylisted(path)
-
-
 def test_authorize_allowed_write() -> None:
     policy = WritePolicy(frozenset({"links"}), frozenset())
     policy.authorize("POST", "/api/v1/links")
@@ -116,9 +98,9 @@ def test_authorize_denied_delete() -> None:
         policy.authorize("PUT", "/api/v1/tags/merge")
 
 
-def test_denylisted_always_fails() -> None:
+def test_unscoped_resource_fails_even_with_raw() -> None:
     policy = WritePolicy(frozenset({"raw"}), frozenset({"raw"}))
-    with pytest.raises(WritesDeniedError, match="denylist"):
+    with pytest.raises(WritesDeniedError, match="not a scoped writable resource"):
         policy.authorize("POST", "/api/v1/tokens")
 
 

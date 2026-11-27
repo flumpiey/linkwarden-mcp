@@ -12,7 +12,7 @@ from fastmcp import Context, FastMCP
 from mcp.types import Icon
 
 from linkwarden_mcp import deletes, reads, workflows, writes
-from linkwarden_mcp.config import Settings, get_client, get_policy, get_settings, reset_state
+from linkwarden_mcp.config import get_client, get_policy, get_settings, reset_state
 from linkwarden_mcp.errors import (
     AmbiguousNameError,
     ApiError,
@@ -78,10 +78,6 @@ def _resolver() -> NameResolver:
     return NameResolver(get_client())
 
 
-def _settings() -> Settings:
-    return get_settings()
-
-
 def register_list_resources() -> None:
     @mcp.tool(
         name="list_resources",
@@ -129,7 +125,10 @@ def register_read_tools() -> None:
         sort: str | None = None,
         limit: int | None = None,
     ) -> list[dict[str, Any]]:
-        """Search saved links by query, collection, tag, or pin status."""
+        """Search saved links by query, collection, tag, or pin status.
+
+        sort: newest, oldest, name_asc, name_desc. limit defaults to 50.
+        """
         return await reads.search_links(
             get_client(),
             _resolver(),
@@ -152,13 +151,16 @@ def register_read_tools() -> None:
         return await reads.read_link_content(get_client(), link_id)
 
     @mcp.tool(name="list_collections", annotations=READ_ANNOTATIONS)
-    async def list_collections_tool(sort: str | None = None) -> list[dict[str, Any]]:
-        """List collections with link counts."""
-        return await reads.list_collections(get_client(), sort=sort)
+    async def list_collections_tool() -> list[dict[str, Any]]:
+        """List collections with link counts, in the user's Linkwarden order."""
+        return await reads.list_collections(get_client())
 
     @mcp.tool(name="list_tags", annotations=READ_ANNOTATIONS)
     async def list_tags_tool(sort: str | None = None) -> list[dict[str, Any]]:
-        """List tags with link counts."""
+        """List tags with link counts.
+
+        sort: newest, oldest, name_asc, name_desc, link_count_desc, link_count_asc.
+        """
         return await reads.list_tags(get_client(), sort=sort)
 
     @mcp.tool(name="get_library_overview", annotations=READ_ANNOTATIONS)
@@ -182,7 +184,6 @@ def register_links_write_tools() -> None:
         tags: list[str] | None = None,
         name: str | None = None,
         description: str | None = None,
-        note: str | None = None,
     ) -> dict[str, Any]:
         require_write_scopes(get_policy(), "links")
         return await writes.save_link(
@@ -193,8 +194,6 @@ def register_links_write_tools() -> None:
             tags=tags,
             name=name,
             description=description,
-            note=note,
-            max_bulk=_settings().max_bulk,
         )
 
     @mcp.tool(
@@ -217,7 +216,7 @@ def register_links_write_tools() -> None:
             link_ids=link_ids,
             collection=collection,
             tags=tags,
-            max_bulk=_settings().max_bulk,
+            max_bulk=get_settings().max_bulk,
         )
 
     @mcp.tool(
@@ -233,7 +232,6 @@ def register_links_write_tools() -> None:
         name: str | None = None,
         url: str | None = None,
         description: str | None = None,
-        note: str | None = None,
         collection: str | None = None,
         tags: list[str] | None = None,
     ) -> dict[str, Any]:
@@ -245,7 +243,6 @@ def register_links_write_tools() -> None:
             name=name,
             url=url,
             description=description,
-            note=note,
             collection=collection,
             tags=tags,
         )
@@ -261,7 +258,7 @@ def register_links_write_tools() -> None:
     async def queue_archive_tool(link_ids: list[int]) -> dict[str, Any]:
         require_write_scopes(get_policy(), "links")
         return await writes.queue_archive(
-            get_client(), link_ids=link_ids, max_bulk=_settings().max_bulk
+            get_client(), link_ids=link_ids, max_bulk=get_settings().max_bulk
         )
 
 
@@ -299,7 +296,6 @@ def register_links_workflow_write_tools() -> None:
         tags: list[str] | None = None,
         name: str | None = None,
         description: str | None = None,
-        note: str | None = None,
         auto_apply_suggestions: bool = False,
     ) -> dict[str, Any]:
         require_write_scopes(get_policy(), "links")
@@ -311,16 +307,15 @@ def register_links_workflow_write_tools() -> None:
             tags=tags,
             name=name,
             description=description,
-            note=note,
             auto_apply_suggestions=auto_apply_suggestions,
-            max_bulk=_settings().max_bulk,
         )
 
     @mcp.tool(
         name="apply_triage_plan",
         annotations=WRITE_ANNOTATIONS,
         description=(
-            "Apply [{link_id, collection?, tags?}]. Default dry_run=true; bulk-capped. "
+            "Apply [{link_id, collection?, tags?}]; tags are added to existing tags. "
+            "Default dry_run=true; bulk-capped. "
             "Requires 'links' in LINKWARDEN_MCP_WRITE_SCOPES."
         ),
     )
@@ -334,14 +329,15 @@ def register_links_workflow_write_tools() -> None:
             _resolver(),
             plan=plan,
             dry_run=dry_run,
-            max_bulk=_settings().max_bulk,
+            max_bulk=get_settings().max_bulk,
         )
 
     @mcp.tool(
         name="bulk_sort_by_rules",
         annotations=WRITE_ANNOTATIONS,
         description=(
-            "Match domain_pattern rules then organise. Default dry_run=true; bulk-capped. "
+            "Match domain_pattern rules (exact host or subdomain) then organise; "
+            "rule tags are added to existing tags. Default dry_run=true; bulk-capped. "
             "Requires 'links' in LINKWARDEN_MCP_WRITE_SCOPES."
         ),
     )
@@ -357,7 +353,7 @@ def register_links_workflow_write_tools() -> None:
             rules=rules,
             dry_run=dry_run,
             collection=collection,
-            max_bulk=_settings().max_bulk,
+            max_bulk=get_settings().max_bulk,
         )
 
 
@@ -380,7 +376,7 @@ def register_tags_workflow_write_tools() -> None:
             _resolver(),
             link_ids=link_ids,
             dry_run=dry_run,
-            max_bulk=_settings().max_bulk,
+            max_bulk=get_settings().max_bulk,
         )
 
 
@@ -396,7 +392,7 @@ def register_links_delete_tools() -> None:
     async def delete_links_tool(link_ids: list[int]) -> dict[str, Any]:
         require_delete_scope(get_policy(), "links")
         return await deletes.delete_links(
-            get_client(), link_ids=link_ids, max_bulk=_settings().max_bulk
+            get_client(), link_ids=link_ids, max_bulk=get_settings().max_bulk
         )
 
 
@@ -419,7 +415,7 @@ def register_tags_delete_tools() -> None:
             _resolver(),
             tag_ids=tag_ids,
             tag_names=tag_names,
-            max_bulk=_settings().max_bulk,
+            max_bulk=get_settings().max_bulk,
         )
 
     @mcp.tool(
@@ -437,7 +433,7 @@ def register_tags_delete_tools() -> None:
             _resolver(),
             new_tag_name=new_tag_name,
             tag_ids=tag_ids,
-            max_bulk=_settings().max_bulk,
+            max_bulk=get_settings().max_bulk,
         )
 
 
@@ -474,7 +470,7 @@ def register_collections_delete_tools() -> None:
             collection=collection,
             on_links=action,
             move_to=move_to,
-            max_bulk=_settings().max_bulk,
+            max_bulk=get_settings().max_bulk,
             ctx=ctx,
         )
 
@@ -518,7 +514,7 @@ def register_workflow_read_tools() -> None:
             get_client(),
             _resolver(),
             link_ids=link_ids,
-            max_bulk=_settings().max_bulk,
+            max_bulk=get_settings().max_bulk,
         )
 
     @mcp.tool(name="find_duplicate_links", annotations=READ_ANNOTATIONS)
@@ -538,7 +534,7 @@ def register_workflow_read_tools() -> None:
             get_client(),
             _resolver(),
             link_ids=link_ids,
-            max_bulk=_settings().max_bulk,
+            max_bulk=get_settings().max_bulk,
         )
 
     @mcp.tool(name="suggest_links_for_collection", annotations=READ_ANNOTATIONS)

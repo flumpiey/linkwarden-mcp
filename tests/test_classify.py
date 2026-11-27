@@ -62,3 +62,17 @@ def test_match_sort_rules() -> None:
     hit = match_sort_rules("https://www.npmjs.com/package/foo", rules)
     assert hit is not None
     assert hit["collection"] == "Libraries"
+
+
+def test_match_sort_rules_ignores_substring_hosts() -> None:
+    rules = [{"domain_pattern": "x.com", "collection": "Twitter"}]
+    assert match_sort_rules("https://dropbox.com/s/1", rules) is None
+    assert match_sort_rules("https://x.com/a", rules) is not None
+    assert match_sort_rules("https://mobile.x.com/a", rules) is not None
+
+
+def test_suggest_tags_whole_token_only() -> None:
+    out = suggest_tags_from_vocabulary(
+        "https://mail.google.com/inbox", None, None, ["ai", "comics", "mail"]
+    )
+    assert [s["name"] for s in out] == ["mail"]

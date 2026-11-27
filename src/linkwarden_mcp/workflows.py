@@ -22,18 +22,6 @@ async def _load_library_context(
     return collections, tag_names
 
 
-async def _fetch_collection_links(
-    client: LinkwardenClient,
-    resolver: NameResolver,
-    collection: str | None = None,
-    *,
-    limit: int = SCAN_LIMIT,
-) -> list[dict[str, Any]]:
-    return await reads.fetch_links(
-        client, resolver, collection=collection, limit=limit
-    )
-
-
 async def suggest_collection_for_url(
     client: LinkwardenClient,
     resolver: NameResolver,
@@ -86,9 +74,7 @@ async def smart_save_link(
     tags: list[str] | None = None,
     name: str | None = None,
     description: str | None = None,
-    note: str | None = None,
     auto_apply_suggestions: bool = False,
-    max_bulk: int = 25,
 ) -> dict[str, Any]:
     collections, vocab = await _load_library_context(resolver)
     coll_suggestions = classify.score_collections(
@@ -123,8 +109,6 @@ async def smart_save_link(
         tags=chosen_tags or None,
         name=name,
         description=description,
-        note=note,
-        max_bulk=max_bulk,
     )
     return {
         **result,
@@ -144,8 +128,8 @@ async def find_unsorted_links(
     limit: int = 50,
     collection: str = UNORGANIZED,
 ) -> dict[str, Any]:
-    links = await _fetch_collection_links(
-        client, resolver, collection, limit=min(limit, SCAN_LIMIT)
+    links = await reads.search_links(
+        client, resolver, collection=collection, limit=min(limit, SCAN_LIMIT)
     )
     unsorted = [
         {
@@ -175,8 +159,8 @@ def _unsorted_reasons(link: dict[str, Any]) -> list[str]:
     readable = link.get("readable")
     if readable in (None, "unavailable"):
         reasons.append("not preserved")
-    # Links already in Unorganized always count as unsorted by location
-    reasons.append("in Unorganized")
+    if link.get("collection") == UNORGANIZED:
+        reasons.append("in Unorganized")
     return reasons
 
 
@@ -249,12 +233,18 @@ async def apply_triage_plan(
     # Group identical collection+tags for fewer API calls when possible
     for action in actions:
         try:
+            tags = action.get("tags")
+            if tags is not None:
+                # organise_links replaces all tags; keep the link's existing ones.
+                link = await reads.get_link(client, action["link_id"])
+                existing = [t["name"] for t in link.get("tags") or [] if t.get("name")]
+                tags = list(dict.fromkeys(existing + list(tags)))
             await writes.organise_links(
                 client,
                 resolver,
                 link_ids=[action["link_id"]],
                 collection=action.get("collection"),
-                tags=action.get("tags"),
+                tags=tags,
                 max_bulk=max_bulk,
             )
             updated += 1
@@ -275,8 +265,8 @@ async def find_duplicate_links(
     collection: str | None = None,
     limit: int = SCAN_LIMIT,
 ) -> dict[str, Any]:
-    links = await _fetch_collection_links(
-        client, resolver, collection, limit=min(limit, SCAN_LIMIT)
+    links = await reads.search_links(
+        client, resolver, collection=collection, limit=min(limit, SCAN_LIMIT)
     )
     groups: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for link in links:
@@ -350,15 +340,17 @@ async def suggest_links_for_collection(
     limit: int = 25,
 ) -> dict[str, Any]:
     collections, _ = await _load_library_context(resolver)
-    in_target = await _fetch_collection_links(client, resolver, collection, limit=200)
+    in_target = await reads.search_links(client, resolver, collection=collection, limit=200)
     domains = Counter(classify.url_domain(str(l.get("url") or "")) for l in in_target)
     top_domains = {d for d, _ in domains.most_common(10) if d}
 
     candidates: list[dict[str, Any]] = []
+    names = {c.get("name") for c in collections}
     for source in (UNORGANIZED, "Favourites"):
-        if source == collection:
+        # "Favourites" is not a Linkwarden default; skip sources the library lacks.
+        if source == collection or source not in names:
             continue
-        outsiders = await _fetch_collection_links(client, resolver, source, limit=200)
+        outsiders = await reads.search_links(client, resolver, collection=source, limit=200)
         for link in outsiders:
             url = str(link.get("url") or "")
             domain = classify.url_domain(url)
@@ -395,8 +387,8 @@ async def analyze_collection_overlap(
     collection_a: str,
     collection_b: str,
 ) -> dict[str, Any]:
-    links_a = await _fetch_collection_links(client, resolver, collection_a, limit=300)
-    links_b = await _fetch_collection_links(client, resolver, collection_b, limit=300)
+    links_a = await reads.search_links(client, resolver, collection=collection_a, limit=300)
+    links_b = await reads.search_links(client, resolver, collection=collection_b, limit=300)
     domains_a = Counter(classify.url_domain(str(l.get("url") or "")) for l in links_a)
     domains_b = Counter(classify.url_domain(str(l.get("url") or "")) for l in links_b)
     shared_domains = sorted(set(domains_a) & set(domains_b) - {""})
@@ -406,13 +398,13 @@ async def analyze_collection_overlap(
     norms_a = {classify.normalize_url(str(l.get("url") or "")) for l in links_a}
     norms_b = {classify.normalize_url(str(l.get("url") or "")) for l in links_b}
     shared_urls = sorted((norms_a & norms_b) - {""})
-    merge_yes = (
-        len(shared_domains) >= 3
-        or len(shared_urls) >= 2
-        or (
-            classify.fuzzy_collection_pairs([collection_a, collection_b], threshold=0.82)
-            and True
+    merge_yes = bool(
+        (
+            len(shared_domains) >= 3
+            or len(shared_urls) >= 2
+            or classify.fuzzy_collection_pairs([collection_a, collection_b], threshold=0.82)
         )
+        and (shared_domains or shared_urls)
     )
     return {
         "collection_a": collection_a,
@@ -421,7 +413,7 @@ async def analyze_collection_overlap(
         "shared_domains": shared_domains[:20],
         "shared_tags": shared_tags[:20],
         "shared_normalized_urls": shared_urls[:20],
-        "merge_recommended": bool(merge_yes and (shared_domains or shared_urls)),
+        "merge_recommended": merge_yes,
         "reason": (
             "Overlapping domains/URLs or near-duplicate names"
             if merge_yes
@@ -497,20 +489,25 @@ async def auto_tag_by_domain(
             "message": "Dry run only. Pass dry_run=false to apply tags.",
         }
     updated = 0
+    failures: list[dict[str, Any]] = []
     for p in proposals:
         if not p["proposed_tags"]:
             continue
-        await writes.organise_links(
-            client,
-            resolver,
-            link_ids=[p["link_id"]],
-            tags=p["merged_tags"],
-            max_bulk=max_bulk,
-        )
-        updated += 1
+        try:
+            await writes.organise_links(
+                client,
+                resolver,
+                link_ids=[p["link_id"]],
+                tags=p["merged_tags"],
+                max_bulk=max_bulk,
+            )
+            updated += 1
+        except Exception as exc:  # noqa: BLE001 — report per-item failure
+            failures.append({"link_id": p["link_id"], "error": str(exc)})
     return {
         "dry_run": False,
         "updated_count": updated,
+        "failures": failures,
         "proposals": proposals,
         "message": f"Tagged {updated} links.",
     }
@@ -570,9 +567,7 @@ async def bulk_sort_by_rules(
     collection: str | None = UNORGANIZED,
     max_bulk: int = 25,
 ) -> dict[str, Any]:
-    links = await _fetch_collection_links(
-        client, resolver, collection, limit=SCAN_LIMIT
-    )
+    links = await reads.search_links(client, resolver, collection=collection, limit=SCAN_LIMIT)
     matches: list[dict[str, Any]] = []
     for link in links:
         url = str(link.get("url") or "")
@@ -585,6 +580,7 @@ async def bulk_sort_by_rules(
                 "url": url,
                 "collection": rule.get("collection"),
                 "tags": rule.get("tags"),
+                "existing_tags": link.get("tags") or [],
                 "matched_pattern": rule.get("domain_pattern"),
             }
         )
@@ -598,19 +594,28 @@ async def bulk_sort_by_rules(
         }
     check_bulk_cap(len(matches), max_bulk)
     updated = 0
+    failures: list[dict[str, Any]] = []
     for m in matches:
-        await writes.organise_links(
-            client,
-            resolver,
-            link_ids=[int(m["link_id"])],
-            collection=m.get("collection"),
-            tags=m.get("tags"),
-            max_bulk=max_bulk,
-        )
-        updated += 1
+        tags = m.get("tags")
+        if tags is not None:
+            # organise_links replaces all tags; keep the link's existing ones.
+            tags = list(dict.fromkeys(list(m["existing_tags"]) + list(tags)))
+        try:
+            await writes.organise_links(
+                client,
+                resolver,
+                link_ids=[int(m["link_id"])],
+                collection=m.get("collection"),
+                tags=tags,
+                max_bulk=max_bulk,
+            )
+            updated += 1
+        except Exception as exc:  # noqa: BLE001 — report per-item failure
+            failures.append({"link_id": m["link_id"], "error": str(exc)})
     return {
         "dry_run": False,
         "updated_count": updated,
+        "failures": failures,
         "matches": matches,
         "message": f"Sorted {updated} links by rules.",
     }

@@ -18,8 +18,6 @@ async def save_link(
     tags: list[str] | None = None,
     name: str | None = None,
     description: str | None = None,
-    note: str | None = None,
-    max_bulk: int = 25,
 ) -> dict[str, Any]:
     collection_id, created = await resolver.ensure_collection_id(collection)
     body: dict[str, Any] = {"url": url, "collection": {"id": collection_id}}
@@ -27,14 +25,12 @@ async def save_link(
         body["name"] = name
     if description:
         body["description"] = description
-    if note:
-        body["note"] = note
     if tags:
         body["tags"] = [{"name": t} for t in tags]
     try:
         result = await client.post("/api/v1/links", json=body)
     except ApiError as exc:
-        if exc.status == 409 or "already" in str(exc).lower():
+        if exc.status == 409:
             return {"message": "This URL is already saved.", "duplicate": True}
         raise
     return {
@@ -98,7 +94,6 @@ async def update_link(
     name: str | None = None,
     url: str | None = None,
     description: str | None = None,
-    note: str | None = None,
     collection: str | None = None,
     tags: list[str] | None = None,
 ) -> dict[str, Any]:
@@ -121,7 +116,6 @@ async def update_link(
         "name": name if name is not None else current.get("name"),
         "url": url if url is not None else current.get("url"),
         "description": description if description is not None else current.get("description"),
-        "note": note if note is not None else current.get("note"),
         "collection": {"id": coll_id, "ownerId": owner_id},
         "tags": tag_objs,
     }

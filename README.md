@@ -179,11 +179,11 @@ No scopes: 18 tools. All three domain scopes in both variables: 31 tools. Call `
 | Tool | Access | Needs | What it does |
 |------|--------|-------|--------------|
 | `list_resources` | read | none | Reports `read_only`, write and delete scopes, and the boundary text |
-| `search_links` | read | none | Searches by query, collection, tag or pin status |
+| `search_links` | read | none | Searches by query, collection, tag or pin status; `limit` defaults to 50 |
 | `get_link` | read | none | Returns full metadata for one link |
 | `read_link_content` | read | none | Returns preserved plain text, with archive fallback |
-| `list_collections` | read | none | Lists collections with link counts |
-| `list_tags` | read | none | Lists tags with link counts |
+| `list_collections` | read | none | Lists collections with link counts, in your Linkwarden order (no sort) |
+| `list_tags` | read | none | Lists all tags with link counts; sort includes `link_count_desc`/`link_count_asc` |
 | `get_library_overview` | read | none | Totals, empty collections and unused tags |
 | `suggest_collection_for_url` | read | none | Heuristic collection suggestions for a URL |
 | `suggest_tags_for_link` | read | none | Suggests existing tags; never invents names |
@@ -199,16 +199,16 @@ No scopes: 18 tools. All three domain scopes in both variables: 31 tools. Call `
 | `save_link` | write | WRITE `links` | Saves a URL into a named collection |
 | `smart_save_link` | write | WRITE `links` | Saves a URL with heuristic collection and tags |
 | `organise_links` | write | WRITE `links` | Moves or retags several links |
-| `update_link` | write | WRITE `links` | Updates link fields (read, modify, write) |
+| `update_link` | write | WRITE `links` | Updates name, URL, description, collection or tags (read, modify, write) |
 | `queue_archive` | write | WRITE `links` | Queues preservation; runs async |
-| `apply_triage_plan` | write | WRITE `links` | Applies `[{link_id, collection?, tags?}]`; `dry_run=true` by default |
-| `bulk_sort_by_rules` | write | WRITE `links` | Sorts links by `domain_pattern` rules; `dry_run=true` by default |
+| `apply_triage_plan` | write | WRITE `links` | Applies `[{link_id, collection?, tags?}]`, adding tags to existing ones; `dry_run=true` by default |
+| `bulk_sort_by_rules` | write | WRITE `links` | Sorts links by `domain_pattern` rules (exact host or subdomain), adding tags; `dry_run=true` by default |
 | `create_collection` | write | WRITE `collections` | Creates a collection, optional parent |
 | `auto_tag_by_domain` | write | WRITE `links` + `tags` | Applies domain-to-tag rules; `dry_run=true` by default |
 | `delete_links` | delete | DELETE `links` | Deletes several links |
 | `delete_tags` | delete | DELETE `tags` | Deletes tags by id or name |
 | `merge_tags` | delete | DELETE `tags` | Merges tags into a new name |
-| `delete_collection` | delete | DELETE `collections` | Deletes a collection after the user picks delete, move or cancel for its links |
+| `delete_collection` | delete | DELETE `collections` | Deletes a collection after the user picks delete, move or cancel for its links; refuses a collection with sub-collections |
 
 ### Permission and safety model
 

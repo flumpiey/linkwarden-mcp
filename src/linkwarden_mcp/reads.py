@@ -4,9 +4,12 @@ from __future__ import annotations
 
 from typing import Any
 
-from linkwarden_mcp.client import LinkwardenClient, parse_links_payload, parse_tags_payload
-from linkwarden_mcp.resolve import UNORGANIZED, NameResolver
-from linkwarden_mcp.sort import sort_to_int
+from linkwarden_mcp.client import LinkwardenClient, parse_links_payload
+from linkwarden_mcp.resolve import UNORGANIZED, NameResolver, fetch_all_tags
+from linkwarden_mcp.sort import TAG_SORT_WORDS, sort_to_int
+
+# Upstream /search returns fixed pages (PAGINATION_TAKE_COUNT, default 50).
+DEFAULT_SEARCH_LIMIT = 50
 
 
 def _link_summary(link: dict[str, Any]) -> dict[str, Any]:
@@ -18,7 +21,7 @@ def _link_summary(link: dict[str, Any]) -> dict[str, Any]:
         "url": link.get("url"),
         "collection": collection.get("name") if isinstance(collection, dict) else None,
         "tags": [t.get("name") for t in tags if isinstance(t, dict)],
-        "pinned": link.get("pinned"),
+        "pinned": bool(link.get("pinnedBy")),
         "readable": link.get("readable"),
     }
 
@@ -29,28 +32,41 @@ async def search_links(
     *,
     query: str | None = None,
     collection: str | None = None,
+    collection_id: int | None = None,
     tag: str | None = None,
     pinned_only: bool | None = None,
     sort: str | None = None,
     limit: int | None = None,
 ) -> list[dict[str, Any]]:
+    """Search links, following ``nextCursor`` until ``limit`` links or no more pages."""
     params: dict[str, Any] = {}
     if query:
-        params["search"] = query
-    if collection:
+        params["searchQueryString"] = query
+    if collection_id is not None:
+        params["collectionId"] = collection_id
+    elif collection:
         params["collectionId"] = await resolver.collection_id(collection)
     if tag:
         params["tagId"] = await resolver.tag_id(tag)
     if pinned_only:
-        params["pinned"] = True
+        params["pinnedOnly"] = "true"
     sort_int = sort_to_int(sort) if sort else None
     if sort_int is not None:
-        params["sortBy"] = sort_int
-    if limit is not None:
-        params["take"] = limit
+        params["sort"] = sort_int
 
-    data = await client.get("/api/v1/search", params=params)
-    return [_link_summary(link) for link in parse_links_payload(data)]
+    wanted = DEFAULT_SEARCH_LIMIT if limit is None else limit
+    links: list[dict[str, Any]] = []
+    cursor: Any | None = None
+    while len(links) < wanted:
+        page_params = dict(params)
+        if cursor is not None:
+            page_params["cursor"] = cursor
+        data = await client.get("/api/v1/search", params=page_params)
+        batch, cursor = parse_links_payload(data)
+        links.extend(batch)
+        if not batch or cursor is None:
+            break
+    return [_link_summary(link) for link in links[:wanted]]
 
 
 async def get_link(client: LinkwardenClient, link_id: int) -> dict[str, Any]:
@@ -62,13 +78,12 @@ async def get_link(client: LinkwardenClient, link_id: int) -> dict[str, Any]:
         "name": link.get("name"),
         "url": link.get("url"),
         "description": link.get("description"),
-        "note": link.get("note"),
         "collection": {
             "id": collection.get("id"),
             "name": collection.get("name"),
         },
         "tags": [{"id": t.get("id"), "name": t.get("name")} for t in tags if isinstance(t, dict)],
-        "pinned": link.get("pinned"),
+        "pinned": bool(link.get("pinnedBy")),
         "readable": link.get("readable"),
         "textContent": link.get("textContent"),
     }
@@ -116,16 +131,8 @@ async def read_link_content(client: LinkwardenClient, link_id: int) -> dict[str,
     }
 
 
-async def list_collections(
-    client: LinkwardenClient,
-    *,
-    sort: str | None = None,
-) -> list[dict[str, Any]]:
-    params: dict[str, Any] = {}
-    sort_int = sort_to_int(sort) if sort else None
-    if sort_int is not None:
-        params["sortBy"] = sort_int
-    data = await client.get("/api/v1/collections", params=params or None)
+async def list_collections(client: LinkwardenClient) -> list[dict[str, Any]]:
+    data = await client.get("/api/v1/collections")
     collections = data if isinstance(data, list) else data.get("data", [])
     out: list[dict[str, Any]] = []
     for c in collections:
@@ -147,12 +154,10 @@ async def list_tags(
     *,
     sort: str | None = None,
 ) -> list[dict[str, Any]]:
-    params: dict[str, Any] = {}
-    sort_int = sort_to_int(sort) if sort else None
-    if sort_int is not None:
-        params["sortBy"] = sort_int
-    data = await client.get("/api/v1/tags", params=params or None)
-    tags, _ = parse_tags_payload(data)
+    sort_int = sort_to_int(sort, TAG_SORT_WORDS) if sort else None
+    tags, _ = await fetch_all_tags(
+        client, {"sort": sort_int} if sort_int is not None else None
+    )
     return [
         {
             "id": t.get("id"),
@@ -180,27 +185,9 @@ def _nesting_depth(collections: list[dict[str, Any]]) -> int:
     return max(depth(int(cid), set()) for cid in by_id)
 
 
-async def fetch_links(
-    client: LinkwardenClient,
-    resolver: NameResolver,
-    *,
-    collection: str | None = None,
-    query: str | None = None,
-    limit: int = 500,
-) -> list[dict[str, Any]]:
-    """Fetch links for workflow scans (capped at ``limit``, default 500)."""
-    return await search_links(
-        client,
-        resolver,
-        query=query,
-        collection=collection,
-        limit=limit,
-    )
-
-
 async def get_library_overview(resolver: NameResolver) -> dict[str, Any]:
     collections = await resolver.collections()
-    tags, tags_partial = await _all_tags(resolver)
+    tags = await resolver.tags()
 
     total_links = sum((c.get("_count") or {}).get("links", 0) for c in collections)
     empty_collections = [
@@ -226,22 +213,6 @@ async def get_library_overview(resolver: NameResolver) -> dict[str, Any]:
         "unorganized_link_count": (unorganized.get("_count") or {}).get("links", 0)
         if unorganized
         else 0,
-        "tags_partial": tags_partial,
+        "tags_partial": resolver.tags_partial,
     }
 
-
-async def _all_tags(resolver: NameResolver) -> tuple[list[dict[str, Any]], bool]:
-    client = resolver._client
-    cursor: Any | None = None
-    all_tags: list[dict[str, Any]] = []
-    tags_partial = False
-    for _ in range(100):
-        params = {"cursor": cursor} if cursor is not None else None
-        raw = await client.get("/api/v1/tags", params=params)
-        batch, cursor = parse_tags_payload(raw)
-        all_tags.extend(batch)
-        if not batch or cursor is None:
-            break
-    else:
-        tags_partial = True
-    return all_tags, tags_partial

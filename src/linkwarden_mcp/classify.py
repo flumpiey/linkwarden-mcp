@@ -177,12 +177,12 @@ def suggest_tags_from_vocabulary(
     for tag_l, canonical in vocab_l.items():
         if any(s["name"] == canonical for s in scored):
             continue
-        if tag_l in haystack or any(tag_l in tok or tok in tag_l for tok in haystack if len(tok) > 2):
-            score = 0.45 if tag_l in haystack else 0.3
+        # Whole-token match only: substrings made "ai" match "mail".
+        if tag_l in haystack:
             scored.append(
                 {
                     "name": canonical,
-                    "score": score,
+                    "score": 0.45,
                     "reason": "token match against vocabulary",
                 }
             )
@@ -217,11 +217,10 @@ def fuzzy_collection_pairs(
     return pairs
 
 
-def match_domain_rules(url: str, rules: dict[str, list[str]] | None = None) -> list[str]:
+def match_domain_rules(url: str) -> list[str]:
     """Return tag names from domain rules that match the URL host."""
     domain = url_domain(url)
-    table = rules or DOMAIN_TAG_RULES
-    for host, tags in table.items():
+    for host, tags in DOMAIN_TAG_RULES.items():
         if domain == host or domain.endswith("." + host):
             return list(tags)
     return []
@@ -237,6 +236,6 @@ def match_sort_rules(
         pattern = str(rule.get("domain_pattern") or "").lower().strip()
         if not pattern:
             continue
-        if domain == pattern or domain.endswith("." + pattern) or pattern in domain:
+        if domain == pattern or domain.endswith("." + pattern):
             return rule
     return None

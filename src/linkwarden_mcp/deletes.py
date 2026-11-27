@@ -230,15 +230,34 @@ async def delete_collection(
         collection_id = await resolver.collection_id(collection)
         match = next((c for c in collections if int(c.get("id", -1)) == collection_id), None)
 
-    links = await reads.fetch_links(
-        client, resolver, collection=collection_name, limit=max_bulk + 1
+    # Linkwarden deletes sub-collections and their links with the parent, uncounted here.
+    children = [
+        str(c.get("name"))
+        for c in collections
+        if isinstance(c.get("parent"), dict) and c["parent"].get("id") == collection_id
+    ]
+    if children:
+        raise ValueError(
+            f"Collection {collection_name!r} (id {collection_id}) has "
+            f"{len(children)} sub-collection(s): {', '.join(children[:10])}. "
+            "Linkwarden would delete them and their links too. "
+            "Delete or move the sub-collections first."
+        )
+
+    links = await reads.search_links(
+        client, resolver, collection_id=collection_id, limit=max_bulk + 1
     )
     link_ids = [int(link["id"]) for link in links if link.get("id") is not None]
     link_count = len(link_ids)
-    meta_count = (match.get("_count") or {}).get("links", 0) if match else 0
-    if meta_count and meta_count > link_count:
-        # Cap scrape may be incomplete; refuse rather than partially dispose.
-        check_bulk_cap(int(meta_count), max_bulk)
+    meta_count = int((match.get("_count") or {}).get("links", 0)) if match else 0
+    if meta_count > link_count:
+        # Fetch may be incomplete; refuse rather than partially dispose.
+        check_bulk_cap(meta_count, max_bulk)
+        raise ValueError(
+            f"Collection {collection_name!r} reports {meta_count} link(s) but only "
+            f"{link_count} could be fetched. Refusing to delete it, because the "
+            "unfetched links would be deleted without disposal."
+        )
 
     if link_count == 0:
         await client.delete(f"/api/v1/collections/{collection_id}")

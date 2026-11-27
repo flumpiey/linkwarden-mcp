@@ -263,3 +263,98 @@ async def test_delete_collection_move_requires_write_links(auth_env: None) -> No
             client, NameResolver(client), collection="Scratch", on_links="move"
         )
     await client.aclose()
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_merge_tags_bulk_cap_counts_tags_past_first_page(auth_env: None) -> None:
+    respx.get(f"{BASE_URL}/api/v1/tags").mock(
+        side_effect=[
+            httpx.Response(
+                200, json={"data": {"tags": [{"id": 1, "name": "a"}], "nextCursor": 1}}
+            ),
+            httpx.Response(
+                200,
+                json={
+                    "data": {
+                        "tags": [{"id": 2, "name": "b", "_count": {"links": 300}}],
+                        "nextCursor": None,
+                    }
+                },
+            ),
+        ]
+    )
+    merge = respx.put(f"{BASE_URL}/api/v1/tags/merge").mock(
+        return_value=httpx.Response(200, json={"id": 9})
+    )
+    client = LinkwardenClient(BASE_URL, "token", policy=FULL_WRITE_POLICY)
+    with pytest.raises(BulkCapExceeded):
+        await merge_tags(
+            client, NameResolver(client), new_tag_name="c", tag_ids=[2], max_bulk=25
+        )
+    assert not merge.called
+    await client.aclose()
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_delete_collection_refuses_when_it_has_sub_collections(auth_env: None) -> None:
+    respx.get(f"{BASE_URL}/api/v1/collections").mock(
+        return_value=_collections_payload(
+            {"id": 10, "name": "Dev", "_count": {"links": 0}, "parent": None},
+            {"id": 11, "name": "Python", "_count": {"links": 30}, "parent": {"id": 10}},
+        )
+    )
+    search = respx.get(f"{BASE_URL}/api/v1/search").mock(return_value=_search_payload())
+    delete = respx.delete(f"{BASE_URL}/api/v1/collections/10").mock(
+        return_value=httpx.Response(200, json={})
+    )
+    client = LinkwardenClient(BASE_URL, "token", policy=FULL_WRITE_POLICY)
+    with pytest.raises(ValueError, match="sub-collection"):
+        await delete_collection(client, NameResolver(client), collection="Dev")
+    assert not delete.called
+    assert not search.called
+    await client.aclose()
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_delete_collection_refuses_short_fetch(auth_env: None) -> None:
+    respx.get(f"{BASE_URL}/api/v1/collections").mock(
+        return_value=_collections_payload({"id": 5, "name": "Big", "_count": {"links": 60}})
+    )
+    respx.get(f"{BASE_URL}/api/v1/search").mock(return_value=_search_payload(*range(1, 51)))
+    delete_links_route = respx.delete(f"{BASE_URL}/api/v1/links").mock(
+        return_value=httpx.Response(200, json={})
+    )
+    delete = respx.delete(f"{BASE_URL}/api/v1/collections/5").mock(
+        return_value=httpx.Response(200, json={})
+    )
+    client = LinkwardenClient(BASE_URL, "token", policy=FULL_WRITE_POLICY)
+    with pytest.raises(ValueError, match="only 50 could be fetched"):
+        await delete_collection(
+            client, NameResolver(client), collection="Big", on_links="delete", max_bulk=100
+        )
+    assert not delete_links_route.called
+    assert not delete.called
+    await client.aclose()
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_delete_collection_by_id_with_duplicate_names(auth_env: None) -> None:
+    respx.get(f"{BASE_URL}/api/v1/collections").mock(
+        return_value=_collections_payload(
+            {"id": 20, "name": "Misc", "_count": {"links": 0}},
+            {"id": 21, "name": "Misc", "_count": {"links": 0}},
+        )
+    )
+    search = respx.get(f"{BASE_URL}/api/v1/search").mock(return_value=_search_payload())
+    respx.delete(f"{BASE_URL}/api/v1/collections/21").mock(
+        return_value=httpx.Response(200, json={})
+    )
+    client = LinkwardenClient(BASE_URL, "token", policy=FULL_WRITE_POLICY)
+    out = await delete_collection(client, NameResolver(client), collection=21)
+    assert out["collection_id"] == 21
+    assert search.calls.last.request.url.params["collectionId"] == "21"
+    await client.aclose()
