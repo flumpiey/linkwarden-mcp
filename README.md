@@ -1,114 +1,65 @@
-<p align="center">
-  <a href="https://linkwarden.app/">
-    <img src="docs/linkwarden-icon.svg" alt="Linkwarden" width="72" height="72">
-  </a>
-</p>
-
-# linkwarden-mcp
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/flumpiey/linkwarden-mcp/main/assets/banner-dark.svg">
+  <img src="https://raw.githubusercontent.com/flumpiey/linkwarden-mcp/main/assets/banner-light.svg" alt="LINKWARDEN-MCP: ask your AI about your Linkwarden bookmarks, collections and tags" width="1280">
+</picture>
 
 <!-- mcp-name: io.github.flumpiey/linkwarden-mcp -->
 
-**MCP server for self-hosted [Linkwarden](https://linkwarden.app/): ask your AI about bookmarks, collections, and tags.**
+[![Licence: MIT](https://img.shields.io/github/license/flumpiey/linkwarden-mcp?style=for-the-badge&label=licence&color=06004f&labelColor=f2ff26)](LICENSE) [![CI](https://img.shields.io/github/actions/workflow/status/flumpiey/linkwarden-mcp/ci.yml?branch=main&style=for-the-badge&label=ci&color=06004f&labelColor=f2ff26)](https://github.com/flumpiey/linkwarden-mcp/actions/workflows/ci.yml) [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-06004f?style=for-the-badge&labelColor=f2ff26)](https://www.python.org/) [![PyPI](https://img.shields.io/pypi/v/linkwarden-mcp?style=for-the-badge&label=pypi&color=06004f&labelColor=f2ff26)](https://pypi.org/project/linkwarden-mcp/) [![MCP Registry](https://img.shields.io/badge/mcp%20registry-listed-06004f?style=for-the-badge&labelColor=f2ff26)](https://registry.modelcontextprotocol.io/v0/servers?search=io.github.flumpiey/linkwarden-mcp)
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Python](https://img.shields.io/badge/python-%3E%3D3.10-blue.svg)](https://www.python.org/)
-[![MCP](https://img.shields.io/badge/MCP-stdio-green.svg)](https://modelcontextprotocol.io/)
-[![CI](https://github.com/flumpiey/linkwarden-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/flumpiey/linkwarden-mcp/actions/workflows/ci.yml)
-[![PyPI](https://img.shields.io/pypi/v/linkwarden-mcp.svg)](https://pypi.org/project/linkwarden-mcp/)
+## What it is and why
 
-## What is Linkwarden?
+`linkwarden-mcp` is a stdio [Model Context Protocol](https://modelcontextprotocol.io/) server for [Linkwarden](https://linkwarden.app/), the self-hosted bookmark manager that preserves full-page archives. It lets Claude, Cursor, VS Code Copilot and other MCP hosts search, read and sort your live library in natural language. The problem it solves: an AI assistant needs useful access to your bookmarks without an access token that can also delete your library or touch user accounts. The server is read-only by default, and each class of change needs its own opt-in scope.
 
-[Linkwarden](https://linkwarden.app/) is a self-hosted, open-source bookmark manager. You collect, organize, annotate, and preserve webpages in one place, with full-page archives so content stays readable after the original page disappears. It also supports collaboration and public sharing.
+## Features
 
-This project wires the Linkwarden HTTP API into the [Model Context Protocol](https://modelcontextprotocol.io/) so Cursor, Claude, VS Code Copilot, and other MCP hosts can query your live library in natural language.
-
-Useful Linkwarden links:
-
-- [Documentation](https://docs.linkwarden.app/)
-- [GitHub](https://github.com/linkwarden/linkwarden)
-- [Cloud](https://linkwarden.app/)
-- [Demo](https://demo.linkwarden.app/)
-- [Self-hosting setup](https://docs.linkwarden.app/self-hosting/installation)
-
-## What this server does
-
-Default is **read-only**. You get:
-
-- **18 read tools** - discovery (`list_resources`), six core reads (search, get, preserved content, collections, tags, overview), and eleven triage/hygiene workflows
-- **Task tools (opt-in)** - intent-shaped writes such as `save_link`, `smart_save_link`, `organise_links`, `create_collection`, `apply_triage_plan` (register when matching write scopes are set)
-- **Delete tools (opt-in)** - `delete_links`, `delete_tags`, `merge_tags`, `delete_collection` (register only under delete scopes; never implied by write)
-- **Hard denylist** - tokens, session, auth, user admin (except `GET /api/v1/users/me`), migration, and whole-instance preservation stay blocked even when writes are on
-
-Transport is **stdio**. No HTTP server. No global install required if you use [`uv`](https://docs.astral.sh/uv/) / `uvx`.
-
-## Branding / icons
-
-Four surfaces (keep them in sync when the mark changes):
-
-1. **stdio hosts (Cursor, Claude Desktop via `mcp.json`):** `serverInfo.icons` from [`server_icons()`](src/linkwarden_mcp/server.py) — embedded data URI from [`src/linkwarden_mcp/assets/icon.png`](src/linkwarden_mcp/assets/icon.png), plus HTTPS fallback [`docs/icon-512.png`](docs/icon-512.png) (`https://raw.githubusercontent.com/flumpiey/linkwarden-mcp/main/docs/icon-512.png`). `website_url` is `https://linkwarden.app/`.
-2. **Cursor plugin:** [`.cursor-plugin/plugin.json`](.cursor-plugin/plugin.json) `logo` → [`docs/linkwarden-icon.svg`](docs/linkwarden-icon.svg).
-3. **Claude Desktop Extension:** [`mcpb/icon.png`](mcpb/icon.png) (packed with `npx @anthropic-ai/mcpb pack mcpb`).
-4. **Claude.ai remote connectors:** Claude.ai ignores `serverInfo.icons` and uses the **root-domain favicon** of the connector URL. If you host a remote MCP later, serve [`docs/favicon.ico`](docs/favicon.ico) at the registrable domain root (e.g. `https://acme.com/favicon.ico` for `https://mcp.acme.com/...`).
-
-[`server.json`](server.json) registry metadata also points its `icons[0].src` at the same raw `docs/icon-512.png` URL.
-
-## Requirements
-
-- Python ≥ 3.10 (pulled in automatically by `uvx`)
-- [uv](https://docs.astral.sh/uv/) (provides `uvx`)
-- A reachable Linkwarden instance: `LINKWARDEN_API_URL` + `LINKWARDEN_API_KEY`
-
-### Access token
-
-1. Sign in to your Linkwarden instance (self-hosted or Cloud).
-2. Open **Settings → Access Tokens** (or go to `/settings/access-tokens`).
-3. Create a **New Access Token**, give it a name, and copy the value into `LINKWARDEN_API_KEY`.
-4. Set `LINKWARDEN_API_URL` to your instance base URL (usually without `/api/v1`; include `/api/v1` only if your deployment requires it), e.g. `https://links.example.com` or local Docker `http://127.0.0.1:3000`.
-
-`linkwarden-mcp` sends the token as `Authorization: Bearer …`. API overview: [API Introduction](https://docs.linkwarden.app/api/api-introduction).
-
-Copy [`.env.example`](.env.example) to `.env` for local runs — **never commit `.env`**. Prefer the Cursor plugin **Configure** UI for credentials, or a secret manager in production.
+- **18 read tools, always on.** Search, metadata, preserved page text, collections, tags, a library overview and eleven triage and hygiene workflows.
+- **Scope-gated writes.** Write and delete tools register only when `LINKWARDEN_MCP_WRITE_SCOPES` or `LINKWARDEN_MCP_DELETE_SCOPES` names their domain. With no scopes the host sees no mutating tool at all.
+- **Delete is never implied by write.** Deletes and tag merges need `LINKWARDEN_MCP_DELETE_SCOPES`, separate from write scopes.
+- **Hard denylist** in the HTTP client: tokens, session, auth, user admin (except `GET /api/v1/users/me`), migration export and import, and whole-instance preservation jobs stay blocked at every scope.
+- **Dry run by default** for bulk workflows (`apply_triage_plan`, `bulk_sort_by_rules`, `auto_tag_by_domain`).
+- **Bulk cap.** Every bulk operation refuses more than `LINKWARDEN_MAX_BULK` records (default 25).
+- **Safe collection delete.** `delete_collection` asks the user, through MCP elicitation, whether to delete, move or keep the links inside first.
+- **Name resolution.** Tools take collection and tag names, and fail loud on unknown or ambiguous names.
+- **Fail-fast start.** The server checks `GET /api/v1/users/me` at start-up, and rejects unknown scopes, wildcards and legacy write flags.
+- **Companion agent skill** in [`skills/linkwarden-bookmarks/SKILL.md`](skills/linkwarden-bookmarks/SKILL.md), plus a Cursor plugin and a Claude Desktop Extension bundle.
 
 ## Quick start
 
-Run the [PyPI](https://pypi.org/project/linkwarden-mcp/) package with [`uvx`](https://docs.astral.sh/uv/guides/tools/):
+You need [uv](https://docs.astral.sh/uv/) and a Linkwarden access token. In Linkwarden, open **Settings > Access Tokens** (`/settings/access-tokens`), create a token and copy it.
 
-```bash
-uvx linkwarden-mcp
-```
+1. Check that the package runs. With no configuration it stops with `LINKWARDEN_API_URL is required`:
 
-Paste a client config below, set `LINKWARDEN_API_URL` / `LINKWARDEN_API_KEY`, restart the host, then ask: *“Find my unread bookmarks about Python”* or *“What's in my Dev collection?”*
+   ```bash
+   uvx linkwarden-mcp
+   ```
 
-From a git clone (dev): `uvx --from git+https://github.com/flumpiey/linkwarden-mcp linkwarden-mcp` or `uv run --directory /path/to/linkwarden-mcp linkwarden-mcp`.
+2. Add the server to your MCP host. For Claude Code:
 
-## Installation
+   ```bash
+   claude mcp add linkwarden --env LINKWARDEN_API_URL=https://links.example.com --env LINKWARDEN_API_KEY=<your-token> -- uvx linkwarden-mcp
+   ```
 
-Configs below pull [`linkwarden-mcp`](https://pypi.org/project/linkwarden-mcp/) from PyPI. Leave write-scope env vars unset for read-only.
+3. Restart the host, then ask: *"Find my unread bookmarks about Python"* or *"What is in my Dev collection?"*
+
+Set `LINKWARDEN_API_URL` to the instance base URL, for example `https://links.example.com` or `http://127.0.0.1:3000` for local Docker. Add `/api/v1` only if your deployment needs it. The server sends the token as `Authorization: Bearer <token>`.
 
 <details>
 <summary><strong>Cursor</strong></summary>
 
-**Plugin (Configure UI for URL, key, and scopes):** this repo is a Cursor plugin via [`.cursor-plugin/plugin.json`](.cursor-plugin/plugin.json) + root [`mcp.json`](mcp.json).
+**Plugin (Configure UI for URL, key and scopes):** this repo is a Cursor plugin through [`.cursor-plugin/plugin.json`](.cursor-plugin/plugin.json) and the root [`mcp.json`](mcp.json).
 
-1. Symlink or copy the clone to `~/.cursor/plugins/local/linkwarden-mcp` (Windows: `%USERPROFILE%\.cursor\plugins\local\linkwarden-mcp`).
-   - **macOS / Linux:** `ln -s /path/to/linkwarden-mcp ~/.cursor/plugins/local/linkwarden-mcp`
-   - **Windows:** Cursor does **not** follow symlinks for local plugins. Use a junction or copy instead:
+1. Link or copy the clone to `~/.cursor/plugins/local/linkwarden-mcp`.
+   - macOS and Linux: `ln -s /path/to/linkwarden-mcp ~/.cursor/plugins/local/linkwarden-mcp`
+   - Windows: Cursor does not follow symlinks for local plugins. Use a junction or a copy:
      ```bat
-     mklink /J "%USERPROFILE%\.cursor\plugins\local\linkwarden-mcp" "E:\Development\linkwarden-mcp"
-     ```
-     or:
-     ```bat
-     robocopy "E:\Development\linkwarden-mcp" "%USERPROFILE%\.cursor\plugins\local\linkwarden-mcp" /E
+     mklink /J "%USERPROFILE%\.cursor\plugins\local\linkwarden-mcp" "<path-to-clone>"
      ```
 2. Reload the window.
-3. Open **Plugins → Configure** on `linkwarden-mcp`. Set **Linkwarden API URL** and **Linkwarden API key**. Leave **Write scopes** / **Delete scopes** empty for read-only, or paste a CSV such as `links,collections`.
-4. Confirm the `linkwarden` MCP server is enabled under Customize / MCP.
+3. Open **Plugins > Configure** on `linkwarden-mcp`. Set **Linkwarden API URL** and **Linkwarden API key**. Leave **Write scopes** and **Delete scopes** empty for read-only.
+4. Confirm that the `linkwarden` MCP server is on under Customize > MCP.
 
-Marketplace listing is a separate submit at [cursor.com/marketplace/publish](https://cursor.com/marketplace/publish).
-
-**Manual `mcp.json`:** project [`.cursor/mcp.json`](.cursor/mcp.json) or user-wide `~/.cursor/mcp.json`. Root [`mcp.json`](mcp.json) is plugin wiring with `${…}` placeholders only — never commit real secrets there.
-
-From PyPI:
+**Manual config:** project `.cursor/mcp.json` or user-wide `~/.cursor/mcp.json`:
 
 ```json
 {
@@ -119,67 +70,30 @@ From PyPI:
       "args": ["linkwarden-mcp"],
       "env": {
         "LINKWARDEN_API_URL": "https://links.example.com",
-        "LINKWARDEN_API_KEY": "your-token"
+        "LINKWARDEN_API_KEY": "<your-token>"
       }
     }
   }
 }
 ```
 
-Local editable (dev):
-
-```json
-{
-  "mcpServers": {
-    "linkwarden": {
-      "type": "stdio",
-      "command": "uv",
-      "args": ["run", "--directory", "/path/to/linkwarden-mcp", "linkwarden-mcp"],
-      "env": {
-        "LINKWARDEN_API_URL": "https://links.example.com",
-        "LINKWARDEN_API_KEY": "your-token"
-      }
-    }
-  }
-}
-```
-
-Optional scoped writes in the `env` block:
-
-```json
-"LINKWARDEN_MCP_WRITE_SCOPES": "links,collections",
-"LINKWARDEN_MCP_DELETE_SCOPES": "links"
-```
-
-Restart Cursor after saving. Confirm `linkwarden` under MCP settings.
+The root `mcp.json` is plugin wiring with `${...}` placeholders only. Never commit real secrets there.
 
 </details>
 
 <details>
 <summary><strong>Claude Desktop</strong></summary>
 
-**Desktop Extension (`.mcpb`):** download [`mcpb.mcpb`](https://github.com/flumpiey/linkwarden-mcp/releases/latest/download/mcpb.mcpb) from [GitHub Releases](https://github.com/flumpiey/linkwarden-mcp/releases). Use **v0.1.5+** (needs [`uv`](https://docs.astral.sh/uv/) on PATH). Launch is `uv tool run --python 3.12 linkwarden-mcp`. Do not put the PyPI package in `mcpb/pyproject.toml` dependencies — Claude Desktop syncs that file at install and can fail on system Python 3.13.
+**Desktop Extension:** download [`mcpb.mcpb`](https://github.com/flumpiey/linkwarden-mcp/releases/latest/download/mcpb.mcpb) from [GitHub Releases](https://github.com/flumpiey/linkwarden-mcp/releases). It needs v0.1.5 or later and `uv` on `PATH`; it launches `uv tool run --python 3.12 linkwarden-mcp`.
 
-1. Open Claude Desktop → **Settings → Extensions**.
-2. Open **Advanced settings** → **Install Extension…**
-3. Select `mcpb.mcpb`. Review permissions, enter **Linkwarden API URL** and **Linkwarden API key**, then click **Install**.
+1. Open Claude Desktop **Settings > Extensions**.
+2. Open **Advanced settings > Install Extension...** and select `mcpb.mcpb`.
+3. Enter **Linkwarden API URL** and **Linkwarden API key**, then click **Install**.
 4. Leave **Write scopes** and **Delete scopes** empty for read-only.
-5. Restart Claude Desktop if tools do not appear.
 
-Build your own bundle from a clone:
+On Windows, a double-click often does nothing, and a drag into chat attaches the file instead of installing it. Use **Install Extension...**.
 
-```bash
-npx @anthropic-ai/mcpb pack mcpb
-```
-
-On Windows, double-click often does nothing and dragging the file into chat attaches it to the conversation instead of installing it. Use **Install Extension…** in Settings.
-
-**Manual `claude_desktop_config.json` fallback:** edit the Claude Desktop config, then restart the app.
-
-| OS | Path |
-|----|------|
-| macOS | `~/Library/Application Support/Claude/claude_desktop_config.json` |
-| Windows | `%APPDATA%\Claude\claude_desktop_config.json` |
+**Manual config:** edit `claude_desktop_config.json` (macOS `~/Library/Application Support/Claude/`, Windows `%APPDATA%\Claude\`), then restart:
 
 ```json
 {
@@ -189,52 +103,7 @@ On Windows, double-click often does nothing and dragging the file into chat atta
       "args": ["linkwarden-mcp"],
       "env": {
         "LINKWARDEN_API_URL": "https://links.example.com",
-        "LINKWARDEN_API_KEY": "your-token"
-      }
-    }
-  }
-}
-```
-
-Local clone:
-
-```json
-{
-  "mcpServers": {
-    "linkwarden": {
-      "command": "uv",
-      "args": ["run", "--directory", "/path/to/linkwarden-mcp", "linkwarden-mcp"],
-      "env": {
-        "LINKWARDEN_API_URL": "https://links.example.com",
-        "LINKWARDEN_API_KEY": "your-token"
-      }
-    }
-  }
-}
-```
-
-</details>
-
-<details>
-<summary><strong>Claude Code</strong></summary>
-
-Add via CLI:
-
-```bash
-claude mcp add linkwarden --env LINKWARDEN_API_URL=https://links.example.com --env LINKWARDEN_API_KEY=your-token -- uvx linkwarden-mcp
-```
-
-Or edit `~/.claude.json` / project MCP config:
-
-```json
-{
-  "mcpServers": {
-    "linkwarden": {
-      "command": "uvx",
-      "args": ["linkwarden-mcp"],
-      "env": {
-        "LINKWARDEN_API_URL": "https://links.example.com",
-        "LINKWARDEN_API_KEY": "your-token"
+        "LINKWARDEN_API_KEY": "<your-token>"
       }
     }
   }
@@ -246,7 +115,7 @@ Or edit `~/.claude.json` / project MCP config:
 <details>
 <summary><strong>VS Code / GitHub Copilot</strong></summary>
 
-Create [`.vscode/mcp.json`](.vscode/mcp.json) in the project root:
+Create `.vscode/mcp.json` in the project root:
 
 ```json
 {
@@ -257,73 +126,7 @@ Create [`.vscode/mcp.json`](.vscode/mcp.json) in the project root:
       "args": ["linkwarden-mcp"],
       "env": {
         "LINKWARDEN_API_URL": "https://links.example.com",
-        "LINKWARDEN_API_KEY": "your-token"
-      }
-    }
-  }
-}
-```
-
-Local editable:
-
-```json
-{
-  "servers": {
-    "linkwarden": {
-      "type": "stdio",
-      "command": "uv",
-      "args": ["run", "--directory", "/path/to/linkwarden-mcp", "linkwarden-mcp"],
-      "env": {
-        "LINKWARDEN_API_URL": "https://links.example.com",
-        "LINKWARDEN_API_KEY": "your-token"
-      }
-    }
-  }
-}
-```
-
-Reload the window. Open Copilot Chat and confirm the `linkwarden` tools are available.
-
-</details>
-
-<details>
-<summary><strong>Windsurf</strong></summary>
-
-Edit `~/.codeium/windsurf/mcp_config.json` (macOS/Linux) or the Windsurf MCP settings UI:
-
-```json
-{
-  "mcpServers": {
-    "linkwarden": {
-      "command": "uvx",
-      "args": ["linkwarden-mcp"],
-      "env": {
-        "LINKWARDEN_API_URL": "https://links.example.com",
-        "LINKWARDEN_API_KEY": "your-token"
-      }
-    }
-  }
-}
-```
-
-Restart Windsurf after saving.
-
-</details>
-
-<details>
-<summary><strong>Zed</strong></summary>
-
-Add under `context_servers` in Zed `settings.json` (Agent Panel → settings also works):
-
-```json
-{
-  "context_servers": {
-    "linkwarden": {
-      "command": "uvx",
-      "args": ["linkwarden-mcp"],
-      "env": {
-        "LINKWARDEN_API_URL": "https://links.example.com",
-        "LINKWARDEN_API_KEY": "your-token"
+        "LINKWARDEN_API_KEY": "<your-token>"
       }
     }
   }
@@ -333,209 +136,116 @@ Add under `context_servers` in Zed `settings.json` (Agent Panel → settings als
 </details>
 
 <details>
-<summary><strong>Cline</strong></summary>
+<summary><strong>Windsurf, Zed, Cline, Continue and other stdio hosts</strong></summary>
 
-Edit the Cline MCP settings file (`cline_mcp_settings.json` via the Cline MCP UI):
-
-```json
-{
-  "mcpServers": {
-    "linkwarden": {
-      "command": "uvx",
-      "args": ["linkwarden-mcp"],
-      "env": {
-        "LINKWARDEN_API_URL": "https://links.example.com",
-        "LINKWARDEN_API_KEY": "your-token"
-      }
-    }
-  }
-}
-```
-
-</details>
-
-<details>
-<summary><strong>Continue</strong></summary>
-
-In `.continue/config.yaml`:
-
-```yaml
-mcpServers:
-  - name: linkwarden
-    command: uvx
-    args:
-      - linkwarden-mcp
-    env:
-      LINKWARDEN_API_URL: https://links.example.com
-      LINKWARDEN_API_KEY: your-token
-```
-
-</details>
-
-<details>
-<summary><strong>Generic / any stdio MCP host</strong></summary>
-
-Any host that can spawn a stdio MCP server:
+Every stdio host needs the same three values:
 
 | Field | Value |
 |-------|-------|
 | Command | `uvx` |
 | Args | `linkwarden-mcp` |
-| Env | `LINKWARDEN_API_URL`, `LINKWARDEN_API_KEY` (+ optional write scopes) |
+| Env | `LINKWARDEN_API_URL`, `LINKWARDEN_API_KEY`, optional scopes |
 
-```bash
-uvx linkwarden-mcp
-```
+- Windsurf: `~/.codeium/windsurf/mcp_config.json`, key `mcpServers`.
+- Zed: `settings.json`, key `context_servers`.
+- Cline: `cline_mcp_settings.json`, key `mcpServers`.
+- Continue: `.continue/config.yaml`, list `mcpServers` with `name`, `command`, `args`, `env`.
 
-Dev from a clone: `uv run --directory /path/to/linkwarden-mcp linkwarden-mcp`.
-
-`npx` only runs npm packages. This is a Python package; use `uvx`.
+From a clone, use `uv run --directory /path/to/linkwarden-mcp linkwarden-mcp`. This is a Python package: `npx` does not run it.
 
 </details>
 
-## Environment
+## Configuration
 
-| Variable | Required | Notes |
-|----------|----------|-------|
-| `LINKWARDEN_API_URL` | yes | Base URL (include `/api/v1` only if required; typical: `https://links.example.com`) |
-| `LINKWARDEN_API_KEY` | yes | Access token from Settings → Access Tokens; sent as `Authorization: Bearer`; never logged |
-| `LINKWARDEN_MCP_WRITE_SCOPES` | no | Comma-separated domains for create/update. Empty = no writes. |
-| `LINKWARDEN_MCP_DELETE_SCOPES` | no | Comma-separated domains for delete only. Never implied by WRITE_SCOPES. |
-| `LINKWARDEN_MAX_BULK` | no | Max records per bulk op (default `25`) |
-| `TEST_LINKWARDEN_API_URL` | integration only | Live sandbox URL for `pytest -m integration` |
-| `TEST_LINKWARDEN_API_KEY` | integration only | Live sandbox token for `pytest -m integration` |
+| Variable | Required | Default | Purpose |
+|----------|----------|---------|---------|
+| `LINKWARDEN_API_URL` | yes | none | Linkwarden base URL. `LINKWARDEN_URL` is a fallback alias. |
+| `LINKWARDEN_API_KEY` | yes | none | Access token, sent as a Bearer token. `LINKWARDEN_TOKEN` is a fallback alias. |
+| `LINKWARDEN_MCP_WRITE_SCOPES` | no | empty (read-only) | Comma-separated scopes for create and update tools. |
+| `LINKWARDEN_MCP_DELETE_SCOPES` | no | empty | Comma-separated scopes for delete and merge tools. Write scopes never imply these. |
+| `LINKWARDEN_MAX_BULK` | no | `25` | Largest number of records in one bulk operation. Must be 1 or more. |
 
-Valid scopes: `links`, `collections`, `tags`, `raw`. No wildcards (`*`, `all`). `raw` expands effective scopes to all domain scopes (escape hatch).
+- Valid scopes: `links`, `collections`, `tags`, `raw`. `raw` expands to all three domain scopes.
+- Wildcards (`*`, `all`) and unknown names stop the server at start-up.
+- The legacy flags `LINKWARDEN_MCP_ALLOW_WRITES`, `ALLOW_WRITES` and `LINKWARDEN_MCP_WRITES` stop the server if set.
+- Recommended for most bookmark work: `LINKWARDEN_MCP_WRITE_SCOPES=links,collections` and `LINKWARDEN_MCP_DELETE_SCOPES=links`.
 
-**Recommended** (covers most bookmark workflows without every mutating tool):
-
-```json
-"LINKWARDEN_MCP_WRITE_SCOPES": "links,collections",
-"LINKWARDEN_MCP_DELETE_SCOPES": "links"
-```
-
-Default with no scopes: **18 tools**. All three domain scopes in WRITE and DELETE: **31 tools**.
-
-Legacy `LINKWARDEN_MCP_ALLOW_WRITES` / `ALLOW_WRITES` / `LINKWARDEN_MCP_WRITES` hard-fail if set. Use the scoped vars instead.
-
-MCP host env (`.cursor/mcp.json` or Cursor plugin Configure) **must match** process env / `.env` or scope behavior drifts.
-
-See [`.env.example`](.env.example). **Never commit `.env`.** Prefer Cursor plugin Configure UI or a secret manager in production.
-
-## Write scopes and task tools
-
-When a scope is listed in `LINKWARDEN_MCP_WRITE_SCOPES`, the server registers **task tools** for that domain. `LINKWARDEN_MCP_DELETE_SCOPES` enables delete/merge tools per domain. Call `list_resources` to inspect `read_only`, scope lists, and the live boundary string.
-
-| Tool | Scopes | Purpose |
-|------|--------|---------|
-| `save_link` | WRITE `links` | Save a URL into a collection (by name) |
-| `smart_save_link` | WRITE `links` | Save with optional heuristic collection/tags |
-| `organise_links` | WRITE `links` | Move or retag multiple links |
-| `update_link` | WRITE `links` | Update link fields (read-modify-write) |
-| `queue_archive` | WRITE `links` | Queue preservation (async; not immediate) |
-| `apply_triage_plan` | WRITE `links` | Apply `[{link_id, collection?, tags?}]`; default `dry_run=true` |
-| `bulk_sort_by_rules` | WRITE `links` | Match `domain_pattern` rules then organise; default `dry_run=true` |
-| `create_collection` | WRITE `collections` | Create a collection (optional parent) |
-| `auto_tag_by_domain` | WRITE `links` + `tags` | Apply domain→tag rules; default `dry_run=true` |
-| `delete_links` | DELETE `links` | Delete multiple links |
-| `delete_tags` | DELETE `tags` | Delete tags by id or name |
-| `merge_tags` | DELETE `tags` | Merge tags into a new name (destructive) |
-| `delete_collection` | DELETE `collections` | Delete a collection after user chooses delete/move/cancel for its links (elicitation or `on_links`) |
-
-Example with recommended scopes only:
-
-```json
-"LINKWARDEN_MCP_WRITE_SCOPES": "links,collections",
-"LINKWARDEN_MCP_DELETE_SCOPES": "links"
-```
-
-**Denylist (always blocked):** `/api/v1/tokens`, `/api/v1/session`, `/api/v1/auth`, `/api/v1/users/**` (except `GET /api/v1/users/me`), migration, and whole-instance preservation worker actions.
+Copy [`.env.example`](.env.example) to `.env` for local runs. Never commit `.env`.
 
 ## Tools
 
-### Read tools
+No scopes: 18 tools. All three domain scopes in both variables: 31 tools. Call `list_resources` to see the live scopes and boundary.
 
-Always registered (18 total).
+| Tool | Access | Needs | What it does |
+|------|--------|-------|--------------|
+| `list_resources` | read | none | Reports `read_only`, write and delete scopes, and the boundary text |
+| `search_links` | read | none | Searches by query, collection, tag or pin status |
+| `get_link` | read | none | Returns full metadata for one link |
+| `read_link_content` | read | none | Returns preserved plain text, with archive fallback |
+| `list_collections` | read | none | Lists collections with link counts |
+| `list_tags` | read | none | Lists tags with link counts |
+| `get_library_overview` | read | none | Totals, empty collections and unused tags |
+| `suggest_collection_for_url` | read | none | Heuristic collection suggestions for a URL |
+| `suggest_tags_for_link` | read | none | Suggests existing tags; never invents names |
+| `find_unsorted_links` | read | none | Lists links in the unsorted collection (default Unorganized) |
+| `triage_links` | read | none | Proposes a collection and tags for link ids |
+| `find_duplicate_links` | read | none | Groups links with the same normalised URL |
+| `recommend_collection_for_links` | read | none | Consensus collection for a batch of links |
+| `suggest_links_for_collection` | read | none | Finds links elsewhere that likely belong in a collection |
+| `analyze_collection_overlap` | read | none | Compares two collections by domains, tags and URLs |
+| `suggest_collection_structure` | read | none | Flags empty, near-duplicate and overcrowded collections |
+| `align_tags_with_similar_links` | read | none | Tags used on links from similar domains |
+| `get_sorting_dashboard` | read | none | One-shot triage: unsorted, duplicates, empty, largest |
+| `save_link` | write | WRITE `links` | Saves a URL into a named collection |
+| `smart_save_link` | write | WRITE `links` | Saves a URL with heuristic collection and tags |
+| `organise_links` | write | WRITE `links` | Moves or retags several links |
+| `update_link` | write | WRITE `links` | Updates link fields (read, modify, write) |
+| `queue_archive` | write | WRITE `links` | Queues preservation; runs async |
+| `apply_triage_plan` | write | WRITE `links` | Applies `[{link_id, collection?, tags?}]`; `dry_run=true` by default |
+| `bulk_sort_by_rules` | write | WRITE `links` | Sorts links by `domain_pattern` rules; `dry_run=true` by default |
+| `create_collection` | write | WRITE `collections` | Creates a collection, optional parent |
+| `auto_tag_by_domain` | write | WRITE `links` + `tags` | Applies domain-to-tag rules; `dry_run=true` by default |
+| `delete_links` | delete | DELETE `links` | Deletes several links |
+| `delete_tags` | delete | DELETE `tags` | Deletes tags by id or name |
+| `merge_tags` | delete | DELETE `tags` | Merges tags into a new name |
+| `delete_collection` | delete | DELETE `collections` | Deletes a collection after the user picks delete, move or cancel for its links |
 
-| Tool | Purpose |
-|------|---------|
-| `list_resources` | Discovery; reports `read_only` + live write/delete scopes |
-| `search_links` | Search by query, collection, tag, or pin status |
-| `get_link` | Full metadata for one link |
-| `read_link_content` | Preserved plain text (`textContent` or archive fallback) |
-| `list_collections` | Collections with link counts |
-| `list_tags` | Tags with link counts |
-| `get_library_overview` | Totals, empty collections, unused tags |
-| `suggest_collection_for_url` | Heuristic collection suggestions for a URL |
-| `suggest_tags_for_link` | Suggest existing-library tags (never invents names) |
-| `find_unsorted_links` | List unsorted links (default collection: Unorganized) |
-| `triage_links` | Propose collection/tags for link ids (no writes) |
-| `find_duplicate_links` | Group links with the same normalized URL |
-| `recommend_collection_for_links` | Consensus collection for a batch of links |
-| `suggest_links_for_collection` | Find links elsewhere that likely belong |
-| `analyze_collection_overlap` | Compare two collections for shared domains/tags/URLs |
-| `suggest_collection_structure` | Hygiene: empty, near-duplicate names, overcrowded |
-| `align_tags_with_similar_links` | Tags used on similar-domain links |
-| `get_sorting_dashboard` | One-shot triage: unsorted, duplicates, empty, largest |
+### Permission and safety model
 
-### Write tools
+1. **Registration gate.** At start-up the server registers only the tools that the scopes allow. A host cannot call a tool that does not exist.
+2. **Call gate.** Each mutating tool checks its scope again before it runs.
+3. **Client gate.** The HTTP client checks every request against the scope map and the denylist, whatever tool sent it.
+4. **Annotations.** Read tools carry `readOnlyHint`. Delete tools carry `destructiveHint`, so hosts can ask for confirmation.
+5. **Limits.** Bulk calls stop above `LINKWARDEN_MAX_BULK`. Bulk workflows preview by default.
 
-Registered only when matching scopes are set (see table above). Prefer `smart_save_link` / triage tools over raw field edits when you are sorting an inbox.
+`delete_collection` with links inside also needs DELETE `links` to delete them, or WRITE `links` to move them.
 
-| Pattern | Requires | Notes |
-|---------|----------|-------|
-| Link create/update/organise/archive | WRITE `links` | Includes workflow writers with `dry_run` defaults |
-| Collection create | WRITE `collections` | Optional parent by name |
-| Domain auto-tag | WRITE `links` + `tags` | Only existing tag names |
-| Deletes / tag merge | matching DELETE scope | Destructive; confirm ids first |
+## Limits
 
-## Agent Skill
-
-Companion skill: [`skills/linkwarden-bookmarks/SKILL.md`](skills/linkwarden-bookmarks/SKILL.md).
-
-The Cursor plugin discovers this skill from `skills/`. Without the plugin, copy or symlink that folder into your agent skills path. It tells the model to call `list_resources` first, verify after writes, and which workflow tools to prefer.
+- One process serves one `LINKWARDEN_API_URL`.
+- Multi-user use on a shared instance is not verified.
+- Suggestions are heuristic and local to your library.
+- Transport is stdio only. Hosts that need a remote HTTP endpoint, such as ChatGPT Apps, cannot use it.
 
 ## Development
 
 ```bash
 uv sync --extra dev
-npm install          # installs lefthook + commitlint; registers git hooks
-uv run linkwarden-mcp
-```
-
-Offline tests only (respx). No live Linkwarden required:
-
-```bash
+npm install
 uv run ruff check src tests
 uv run pytest
 ```
 
-### Git hooks (lefthook)
+- `npm install` installs lefthook and commitlint and registers the git hooks.
+- The test suite is offline and uses `respx` mocks. It needs no Linkwarden instance.
+- `pre-commit` runs `ruff check` and `pytest`. `commit-msg` enforces Conventional Commits.
+- `npm run pre-publish` runs the release gate: ruff, pytest, sdist contents, `python -m build`, `twine check` and `npx @anthropic-ai/mcpb pack mcpb`.
+- CI runs ruff and pytest on Python 3.10 and 3.12. A published GitHub Release uploads to PyPI and the MCP Registry.
 
-| Hook / command | What it runs |
-|----------------|--------------|
-| **pre-commit** | `ruff check` + full `pytest` (mocked suite) |
-| **commit-msg** | [commitlint](https://commitlint.js.org/) Conventional Commits |
-| **`npm run pre-publish`** | ensure build/twine → ruff → pytest → sdist contents → `python -m build` → `twine check` → `npx @anthropic-ai/mcpb pack mcpb` |
-
-Commit messages must follow Conventional Commits, e.g. `feat(api): add delete_links tool`.
-
-Run the local publish gate before tagging a release:
-
-```bash
-npm run pre-publish
-```
-
-GitHub Actions matrix: Python 3.10 and 3.12.
-
-## Caveats
-
-- One process ↔ one `LINKWARDEN_API_URL`. Multi-instance routing is out of scope.
-- Multi-user / team disambiguation on a shared instance is **unverified**. Do not claim multi-tenant support until validated against a live shared library.
-- Collection/tag suggestions are heuristic and library-local; they do not invent new tag names.
-- Bulk mutating workflows default to `dry_run=true`; set `dry_run=false` only after you review the plan.
-- ChatGPT Apps need a hosted HTTP MCP endpoint. This package is stdio-only.
-
-## License
+## Licence
 
 MIT. See [LICENSE](LICENSE).
+
+---
+
+Built by Dru Connold. [flumpiey.github.io](https://flumpiey.github.io) | [malvadev.com](https://malvadev.com)

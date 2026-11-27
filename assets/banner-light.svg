@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="240" viewBox="0 0 1280 240" role="img" aria-labelledby="t d">
+  <title id="t">LINKWARDEN-MCP</title>
+  <desc id="d">MCP server for self-hosted Linkwarden. Read-only by default, scoped writes opt-in.</desc>
+  <rect width="1280" height="240" fill="#f5f0e8"/>
+  <rect x="1040" y="0" width="240" height="240" fill="#eae4d8"/>
+  <rect x="0" y="0" width="1280" height="8" fill="#06004f"/>
+  <g font-family="Archivo, Helvetica Neue, Arial, sans-serif" fill="#06004f">
+    <text x="40" y="52" font-size="14" font-weight="700" letter-spacing="2" fill="#3a3578">MCP SERVER / PYTHON / STDIO</text>
+    <text x="40" y="132" font-size="88" font-weight="900" textLength="940" lengthAdjust="spacingAndGlyphs">LINKWARDEN-MCP</text>
+  </g>
+  <rect x="0" y="160" width="1040" height="56" fill="#f2ff26"/>
+  <text x="40" y="196" font-family="Archivo, Helvetica Neue, Arial, sans-serif" font-size="22" font-weight="700" fill="#06004f" textLength="860" lengthAdjust="spacingAndGlyphs">Ask your AI about your Linkwarden bookmarks, collections and tags.</text>
+  <g font-family="Archivo, Helvetica Neue, Arial, sans-serif">
+    <text x="1072" y="52" font-size="14" font-weight="700" letter-spacing="2" fill="#3a3578">DEFAULT</text>
+    <text x="1072" y="120" font-size="48" font-weight="900" fill="#06004f" textLength="176" lengthAdjust="spacingAndGlyphs">READ</text>
+    <text x="1072" y="170" font-size="48" font-weight="900" fill="#06004f" textLength="176" lengthAdjust="spacingAndGlyphs">ONLY</text>
+    <text x="1072" y="204" font-size="13" font-weight="700" letter-spacing="1" fill="#3a3578" textLength="176" lengthAdjust="spacingAndGlyphs">SCOPED WRITES OPT-IN</text>
+  </g>
+</svg>
