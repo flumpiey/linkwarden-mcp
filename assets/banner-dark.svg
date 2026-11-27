@@ -1,19 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1280" height="240" viewBox="0 0 1280 240" role="img" aria-labelledby="t d">
   <title id="t">LINKWARDEN-MCP</title>
-  <desc id="d">MCP server for self-hosted Linkwarden. Read-only by default, scoped writes opt-in.</desc>
+  <desc id="d">MCP server for Linkwarden: ask your AI about your bookmarks, collections and tags. Read-only by default, scoped writes opt-in.</desc>
   <rect width="1280" height="240" fill="#06004f"/>
-  <rect x="1040" y="0" width="240" height="240" fill="#030030"/>
-  <rect x="0" y="0" width="1280" height="8" fill="#f2ff26"/>
-  <g font-family="Archivo, Helvetica Neue, Arial, sans-serif" fill="#f5f0e8">
-    <text x="40" y="52" font-size="14" font-weight="700" letter-spacing="2" fill="#cccce0">MCP SERVER / PYTHON / STDIO</text>
-    <text x="40" y="132" font-size="88" font-weight="900" textLength="940" lengthAdjust="spacingAndGlyphs">LINKWARDEN-MCP</text>
-  </g>
-  <rect x="0" y="160" width="1040" height="56" fill="#f2ff26"/>
-  <text x="40" y="196" font-family="Archivo, Helvetica Neue, Arial, sans-serif" font-size="22" font-weight="700" fill="#06004f" textLength="860" lengthAdjust="spacingAndGlyphs">Ask your AI about your Linkwarden bookmarks, collections and tags.</text>
-  <g font-family="Archivo, Helvetica Neue, Arial, sans-serif">
-    <text x="1072" y="52" font-size="14" font-weight="700" letter-spacing="2" fill="#cccce0">DEFAULT</text>
-    <text x="1072" y="120" font-size="48" font-weight="900" fill="#f5f0e8" textLength="176" lengthAdjust="spacingAndGlyphs">READ</text>
-    <text x="1072" y="170" font-size="48" font-weight="900" fill="#f5f0e8" textLength="176" lengthAdjust="spacingAndGlyphs">ONLY</text>
-    <text x="1072" y="204" font-size="13" font-weight="700" letter-spacing="1" fill="#cccce0" textLength="176" lengthAdjust="spacingAndGlyphs">SCOPED WRITES OPT-IN</text>
-  </g>
+  <g transform="translate(1168,24) scale(1.1875)"><rect width="64" height="64" fill="#f2ff26"/><path d="M14 10 H38 V54 L26 43 L14 54 Z" fill="#06004f"/><rect x="38" y="28" width="10" height="6" fill="#06004f"/><rect x="46" y="22" width="8" height="18" fill="#06004f"/></g>
+  <text x="48" y="52" font-family="Archivo, Helvetica Neue, Arial, sans-serif" font-size="16" font-weight="700" fill="#cccce0" textLength="452" lengthAdjust="spacingAndGlyphs">IO.GITHUB.FLUMPIEY/LINKWARDEN-MCP</text>
+  <text x="48" y="144" font-family="Archivo, Helvetica Neue, Arial, sans-serif" font-size="84" font-weight="900" fill="#f5f0e8" textLength="780" lengthAdjust="spacingAndGlyphs">LINKWARDEN-MCP</text>
+  <rect x="0" y="176" width="1280" height="64" fill="#f2ff26"/>
+  <text x="48" y="218" font-family="Archivo, Helvetica Neue, Arial, sans-serif" font-size="26" font-weight="700" fill="#06004f" textLength="830" lengthAdjust="spacingAndGlyphs">Ask your AI about your Linkwarden bookmarks, collections and tags</text>
+  <g transform="translate(1028,190)"><title>search_links</title><circle cx="15" cy="15" r="10" fill="none" stroke="#06004f" stroke-width="4"/><path d="M22 22 L33 33" stroke="#06004f" stroke-width="5"/></g><g transform="translate(1084,190)"><title>collections</title><path d="M3 9 H14 L17 13 H33 V31 H3 Z" fill="#06004f"/></g><g transform="translate(1140,190)"><title>tags</title><path d="M3 5 H18 L33 20 L20 33 L3 18 Z" fill="#06004f"/><circle cx="11" cy="12" r="3" fill="#f2ff26"/></g><g transform="translate(1196,190)"><title>triage_links</title><path d="M3 5 H33 L22 18 V32 L14 28 V18 Z" fill="#06004f"/></g>
 </svg>
